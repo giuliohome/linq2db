@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 
 namespace LinqToDB.DataProvider.Oracle
 {
 	using Data;
-	using Mapping;
 	using SqlProvider;
 
 	class OracleBulkCopy : BasicBulkCopy
@@ -34,13 +32,13 @@ namespace LinqToDB.DataProvider.Oracle
 
 			var sqlBuilder = dataConnection.DataProvider.CreateSqlBuilder();
 			var descriptor = dataConnection.MappingSchema.GetEntityDescriptor(typeof(T));
-			var tableName  = GetTableName(sqlBuilder, descriptor);
+			var tableName  = GetTableName(sqlBuilder, options, descriptor);
 
 			if (dataConnection.Transaction == null)
 			{
 				if (_bulkCopyCreator == null)
 				{
-					var clientNamespace    = OracleTools.AssemblyName + ".Client.";
+					var clientNamespace    = ((OracleDataProvider)dataConnection.DataProvider).AssemblyName + ".Client.";
 					var bulkCopyType       = _connectionType.Assembly.GetType(clientNamespace + "OracleBulkCopy",              false);
 					var bulkCopyOptionType = _connectionType.Assembly.GetType(clientNamespace + "OracleBulkCopyOptions",       false);
 					var columnMappingType  = _connectionType.Assembly.GetType(clientNamespace + "OracleBulkCopyColumnMapping", false);
@@ -94,14 +92,25 @@ namespace LinqToDB.DataProvider.Oracle
 						for (var i = 0; i < columns.Count; i++)
 							dbc.ColumnMappings.Add((dynamic)_columnMappingCreator(i, columns[i].ColumnName));
 
-						dbc.WriteToServer(rd);
+						TraceAction(
+							dataConnection,
+							"INSERT BULK " + tableName + Environment.NewLine,
+							() => { dbc.WriteToServer(rd); return rd.Count; });
 					}
 
-					rc.RowsCopied = rd.Count;
+					if (rc.RowsCopied != rd.Count)
+					{
+						rc.RowsCopied = rd.Count;
+
+						if (options.NotifyAfter != 0 && options.RowsCopiedCallback != null)
+							options.RowsCopiedCallback(rc);
+					}
 
 					return rc;
 				}
 			}
+
+			options.BulkCopyType = BulkCopyType.MultipleRows;
 
 			return MultipleRowsCopy(dataConnection, options, source);
 		}

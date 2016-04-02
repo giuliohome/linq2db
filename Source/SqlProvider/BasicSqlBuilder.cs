@@ -2,9 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
-using LinqToDB.Linq.Builder;
 
 namespace LinqToDB.SqlProvider
 {
@@ -214,6 +215,15 @@ namespace LinqToDB.SqlProvider
 			throw new SqlException("Unknown query type '{0}'.", SelectQuery.QueryType);
 		}
 
+		public virtual StringBuilder ConvertTableName(StringBuilder sb, string database, string owner, string table)
+		{
+			if (database != null) database = Convert(database, ConvertType.NameToDatabase).  ToString();
+			if (owner    != null) owner    = Convert(owner,    ConvertType.NameToOwner).     ToString();
+			if (table    != null) table    = Convert(table,    ConvertType.NameToQueryTable).ToString();
+
+			return BuildTableName(sb, database, owner, table);
+		}
+
 		public virtual StringBuilder BuildTableName(StringBuilder sb, string database, string owner, string table)
 		{
 			if (database != null)
@@ -324,9 +334,16 @@ namespace LinqToDB.SqlProvider
 		protected virtual void BuildUpdateTableName()
 		{
 			if (SelectQuery.Update.Table != null && SelectQuery.Update.Table != SelectQuery.From.Tables[0].Source)
+			{
 				BuildPhysicalTable(SelectQuery.Update.Table, null);
+			}
 			else
+			{
+				if (SelectQuery.From.Tables[0].Source is SelectQuery)
+					StringBuilder.Length--;
+
 				BuildTableName(SelectQuery.From.Tables[0], true, true);
+			}
 		}
 
 		protected virtual void BuildUpdateSet()
@@ -373,6 +390,10 @@ namespace LinqToDB.SqlProvider
 			StringBuilder.AppendLine("DEFAULT VALUES");
 		}
 
+		protected virtual void BuildOutputSubclause()
+		{
+		}
+
 		protected virtual void BuildInsertClause(string insertText, bool appendTableName)
 		{
 			AppendIndent().Append(insertText);
@@ -383,6 +404,9 @@ namespace LinqToDB.SqlProvider
 			if (SelectQuery.Insert.Items.Count == 0)
 			{
 				StringBuilder.Append(' ');
+
+				BuildOutputSubclause();
+
 				BuildEmptyInsert();
 			}
 			else
@@ -409,6 +433,8 @@ namespace LinqToDB.SqlProvider
 
 				StringBuilder.AppendLine();
 				AppendIndent().AppendLine(")");
+
+				BuildOutputSubclause();
 
 				if (SelectQuery.QueryType == QueryType.InsertOrUpdate || SelectQuery.From.Tables.Count == 0)
 				{
@@ -612,6 +638,16 @@ namespace LinqToDB.SqlProvider
 				AppendIndent().Append(createTable.StatementFooter);
 		}
 
+		class CreateFieldInfo
+		{
+			public SqlField      Field;
+			public StringBuilder StringBuilder;
+			public string        Name;
+			public string        Type;
+			public string        Identity;
+			public string        Null;
+		}
+
 		protected virtual void BuildCreateTableStatement()
 		{
 			var table = SelectQuery.CreateTable.Table;
@@ -622,53 +658,78 @@ namespace LinqToDB.SqlProvider
 			AppendIndent().Append("(");
 			Indent++;
 
-			var fields = table.Fields.Select(f => new { field = f.Value, sb = new StringBuilder() }).ToList();
+			var fields = table.Fields.Select(f => new CreateFieldInfo { Field = f.Value, StringBuilder = new StringBuilder() }).ToList();
 			var maxlen = 0;
 
-			Action appendToMax = () =>
+			Action<bool> appendToMax = addCreateFormat =>
 			{
 				foreach (var field in fields)
-					while (maxlen > field.sb.Length)
-						field.sb.Append(' ');
+					if (addCreateFormat || field.Field.CreateFormat == null)
+						while (maxlen > field.StringBuilder.Length)
+							field.StringBuilder.Append(' ');
 			};
+
+			var isAnyCreateFormat = false;
 
 			// Build field name.
 			//
 			foreach (var field in fields)
 			{
-				field.sb.Append(Convert(field.field.PhysicalName, ConvertType.NameToQueryField));
+				field.StringBuilder.Append(Convert(field.Field.PhysicalName, ConvertType.NameToQueryField));
 
-				if (maxlen < field.sb.Length)
-					maxlen = field.sb.Length;
+				if (maxlen < field.StringBuilder.Length)
+					maxlen = field.StringBuilder.Length;
+
+				if (field.Field.CreateFormat != null)
+					isAnyCreateFormat = true;
 			}
 
-			appendToMax();
+			appendToMax(true);
+
+			if (isAnyCreateFormat)
+				foreach (var field in fields)
+					if (field.Field.CreateFormat != null)
+						field.Name = field.StringBuilder.ToString() + ' ';
 
 			// Build field type.
 			//
 			foreach (var field in fields)
 			{
-				field.sb.Append(' ');
+				field.StringBuilder.Append(' ');
 
-				if (!string.IsNullOrEmpty(field.field.DbType))
-					field.sb.Append(field.field.DbType);
+				if (!string.IsNullOrEmpty(field.Field.DbType))
+					field.StringBuilder.Append(field.Field.DbType);
 				else
 				{
 					var sb = StringBuilder;
-					StringBuilder = field.sb;
+					StringBuilder = field.StringBuilder;
 
-					BuildCreateTableFieldType(field.field);
+					BuildCreateTableFieldType(field.Field);
 
 					StringBuilder = sb;
 				}
 
-				if (maxlen < field.sb.Length)
-					maxlen = field.sb.Length;
+				if (maxlen < field.StringBuilder.Length)
+					maxlen = field.StringBuilder.Length;
 			}
 
-			appendToMax();
+			appendToMax(true);
 
-			var hasIdentity = fields.Any(f => f.field.IsIdentity);
+			if (isAnyCreateFormat)
+			{
+				foreach (var field in fields)
+				{
+					if (field.Field.CreateFormat != null)
+					{
+						var sb = field.StringBuilder;
+
+						field.Type = sb.ToString().Substring(field.Name.Length) + ' ';
+						sb.Length = 0;
+					}
+				}
+			}
+
+			var hasIdentity = fields.Any(f => f.Field.IsIdentity);
 
 			// Build identity attribute.
 			//
@@ -676,32 +737,53 @@ namespace LinqToDB.SqlProvider
 			{
 				foreach (var field in fields)
 				{
-					field.sb.Append(' ');
+					if (field.Field.CreateFormat == null)
+						field.StringBuilder.Append(' ');
 
-					if (field.field.IsIdentity)
-						WithStringBuilder(field.sb, () => BuildCreateTableIdentityAttribute1(field.field));
+					if (field.Field.IsIdentity)
+						WithStringBuilder(field.StringBuilder, () => BuildCreateTableIdentityAttribute1(field.Field));
 
-					if (maxlen < field.sb.Length)
-						maxlen = field.sb.Length;
+					if (field.Field.CreateFormat != null)
+					{
+						field.Identity = field.StringBuilder.ToString();
+
+						if (field.Identity.Length != 0)
+							field.Identity += ' ';
+
+						field.StringBuilder.Length = 0;
+					}
+					else if (maxlen < field.StringBuilder.Length)
+					{
+						maxlen = field.StringBuilder.Length;
+					}
 				}
 
-				appendToMax();
+				appendToMax(false);
 			}
 
 			// Build nullable attribute.
 			//
 			foreach (var field in fields)
 			{
-				field.sb.Append(' ');
-				WithStringBuilder(
-					field.sb,
-					() => BuildCreateTableNullAttribute(field.field, SelectQuery.CreateTable.DefaulNullable));
+				if (field.Field.CreateFormat == null)
+					field.StringBuilder.Append(' ');
 
-				if (maxlen < field.sb.Length)
-					maxlen = field.sb.Length;
+				WithStringBuilder(
+					field.StringBuilder,
+					() => BuildCreateTableNullAttribute(field.Field, SelectQuery.CreateTable.DefaulNullable));
+
+				if (field.Field.CreateFormat != null)
+				{
+					field.Null = field.StringBuilder.ToString() + ' ';
+					field.StringBuilder.Length = 0;
+				}
+				else if (maxlen < field.StringBuilder.Length)
+				{
+					maxlen = field.StringBuilder.Length;
+				}
 			}
 
-			appendToMax();
+			appendToMax(false);
 
 			// Build identity attribute.
 			//
@@ -709,35 +791,59 @@ namespace LinqToDB.SqlProvider
 			{
 				foreach (var field in fields)
 				{
-					field.sb.Append(' ');
+					if (field.Field.CreateFormat == null)
+						field.StringBuilder.Append(' ');
 
-					if (field.field.IsIdentity)
-						WithStringBuilder(field.sb, () => BuildCreateTableIdentityAttribute2(field.field));
+					if (field.Field.IsIdentity)
+						WithStringBuilder(field.StringBuilder, () => BuildCreateTableIdentityAttribute2(field.Field));
 
-					if (maxlen < field.sb.Length)
-						maxlen = field.sb.Length;
+					if (field.Field.CreateFormat != null)
+					{
+						if (field.Field.CreateFormat != null && field.Identity.Length == 0)
+						{
+							field.Identity = field.StringBuilder.ToString() + ' ';
+							field.StringBuilder.Length = 0;
+						}
+					}
+					else if (maxlen < field.StringBuilder.Length)
+					{
+						maxlen = field.StringBuilder.Length;
+					}
 				}
 
-				appendToMax();
+				appendToMax(false);
 			}
 
 			// Build fields.
 			//
 			for (var i = 0; i < fields.Count; i++)
 			{
-				while (fields[i].sb.Length > 0 && fields[i].sb[fields[i].sb.Length - 1] == ' ')
-					fields[i].sb.Length--;
+				while (fields[i].StringBuilder.Length > 0 && fields[i].StringBuilder[fields[i].StringBuilder.Length - 1] == ' ')
+					fields[i].StringBuilder.Length--;
 
 				StringBuilder.AppendLine(i == 0 ? "" : ",");
 				AppendIndent();
-				StringBuilder.Append(fields[i].sb);
+
+				var field = fields[i];
+
+				if (field.Field.CreateFormat != null)
+				{
+					StringBuilder.AppendFormat(field.Field.CreateFormat, field.Name, field.Type, field.Null, field.Identity);
+
+					while (StringBuilder.Length > 0 && StringBuilder[StringBuilder.Length - 1] == ' ')
+						StringBuilder.Length--;
+				}
+				else
+				{
+					StringBuilder.Append(field.StringBuilder);
+				}
 			}
 
 			var pk =
 			(
 				from f in fields
-				where f.field.IsPrimaryKey
-				orderby f.field.PrimaryKeyOrder
+				where f.Field.IsPrimaryKey
+				orderby f.Field.PrimaryKeyOrder
 				select f
 			).ToList();
 
@@ -747,7 +853,7 @@ namespace LinqToDB.SqlProvider
 
 				BuildCreateTablePrimaryKey(
 					Convert("PK_" + SelectQuery.CreateTable.Table.PhysicalName, ConvertType.NameToQueryTable).ToString(),
-					pk.Select(f => Convert(f.field.PhysicalName, ConvertType.NameToQueryField).ToString()));
+					pk.Select(f => Convert(f.Field.PhysicalName, ConvertType.NameToQueryField).ToString()));
 			}
 
 			Indent--;
@@ -770,13 +876,13 @@ namespace LinqToDB.SqlProvider
 
 		protected virtual void BuildCreateTableNullAttribute(SqlField field, DefaulNullable defaulNullable)
 		{
-			if (defaulNullable == DefaulNullable.Null && field.Nullable)
+			if (defaulNullable == DefaulNullable.Null && field.CanBeNull)
 				return;
 
-			if (defaulNullable == DefaulNullable.NotNull && !field.Nullable)
+			if (defaulNullable == DefaulNullable.NotNull && !field.CanBeNull)
 				return;
 
-			StringBuilder.Append(field.Nullable ? "    NULL" : "NOT NULL");
+			StringBuilder.Append(field.CanBeNull ? "    NULL" : "NOT NULL");
 		}
 
 		protected virtual void BuildCreateTableIdentityAttribute1(SqlField field)
@@ -1552,13 +1658,7 @@ namespace LinqToDB.SqlProvider
 						case QueryElementType.SqlParameter :
 							{
 								var p = (SqlParameter)predicate.Expr1;
-
-								sqlDataType = new SqlDataType(
-									p.DataType,
-									p.SystemType,
-									0,
-									0,
-									0);
+								sqlDataType = new SqlDataType(p.DataType, p.SystemType, 0, 0, 0);
 							}
 
 							break;
@@ -2355,9 +2455,11 @@ namespace LinqToDB.SqlProvider
 		{
 			return
 				precedence == 0 ||
+				/* maybe it will be no harm to put "<=" here? */
 				precedence < parentPrecedence ||
 				(precedence == parentPrecedence && 
-					(parentPrecedence == Precedence.Subtraction ||
+					(parentPrecedence == Precedence.Subtraction    ||
+					 parentPrecedence == Precedence.Multiplicative ||
 					 parentPrecedence == Precedence.LogicalNegation));
 		}
 
@@ -2518,6 +2620,16 @@ namespace LinqToDB.SqlProvider
 
 		protected virtual string GetProviderTypeName(IDbDataParameter parameter)
 		{
+			switch (parameter.DbType)
+			{
+				case DbType.AnsiString           : return "VarChar";
+				case DbType.AnsiStringFixedLength: return "Char";
+				case DbType.String               : return "NVarChar";
+				case DbType.StringFixedLength    : return "NChar";
+				case DbType.Decimal              : return "Decimal";
+				case DbType.Binary               : return "Binary";
+			}
+
 			return null;
 		}
 
@@ -2535,6 +2647,59 @@ namespace LinqToDB.SqlProvider
 			var t2 = parameter.DbType.ToString();
 
 			sb.Append(t1);
+
+			if (t1 != null)
+			{
+				if (parameter.Size != 0)
+				{
+					if (t1.IndexOf('(') < 0)
+						sb.Append('(').Append(parameter.Size).Append(')');
+				}
+				else if (parameter.Precision != 0)
+				{
+					if (t1.IndexOf('(') < 0)
+						sb.Append('(').Append(parameter.Precision).Append(',').Append(parameter.Scale).Append(')');
+				}
+				else
+				{
+					switch (parameter.DbType)
+					{
+						case DbType.AnsiString           :
+						case DbType.AnsiStringFixedLength:
+						case DbType.String               :
+						case DbType.StringFixedLength    :
+							{
+								var value = parameter.Value as string;
+
+								if (!string.IsNullOrEmpty(value))
+									sb.Append('(').Append(value.Length).Append(')');
+
+								break;
+							}
+						case DbType.Decimal              :
+							{
+								var value = parameter.Value;
+
+								if (value is decimal)
+								{
+									var d = new SqlDecimal((decimal)value);
+									sb.Append('(').Append(d.Precision).Append(',').Append(d.Scale).Append(')');
+								}
+
+								break;
+							}
+						case DbType.Binary                :
+							{
+								var value = parameter.Value as byte[];
+
+								if (value != null)
+									sb.Append('(').Append(value.Length).Append(')');
+
+								break;
+							}
+					}
+				}
+			}
 
 			if (t1 != t2)
 				sb.Append(" -- ").Append(t2);
@@ -2570,12 +2735,22 @@ namespace LinqToDB.SqlProvider
 			return sb;
 		}
 
-		private        string _name;
-		public virtual string  Name
+		public string ApplyQueryHints(string sql, List<string> queryHints)
+		{
+			var sb = new StringBuilder(sql);
+
+			foreach (var hint in queryHints)
+				sb.AppendLine(hint);
+
+			return sb.ToString();
+		}
+
+		private string _name;
+
+		public virtual string Name
 		{
 			get { return _name ?? (_name = GetType().Name.Replace("SqlBuilder", "")); }
 		}
-
 		#endregion
 	}
 }

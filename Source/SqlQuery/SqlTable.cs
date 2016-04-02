@@ -76,7 +76,7 @@ namespace LinqToDB.SqlQuery
 					SystemType       = column.MemberType,
 					Name             = column.MemberName,
 					PhysicalName     = column.ColumnName,
-					Nullable         = column.CanBeNull,
+					CanBeNull        = column.CanBeNull,
 					IsPrimaryKey     = column.IsPrimaryKey,
 					PrimaryKeyOrder  = column.PrimaryKeyOrder,
 					IsIdentity       = column.IsIdentity,
@@ -87,6 +87,7 @@ namespace LinqToDB.SqlQuery
 					Length           = column.Length,
 					Precision        = column.Precision,
 					Scale            = column.Scale,
+					CreateFormat     = column.CreateFormat,
 					ColumnDescriptor = column,
 				};
 
@@ -98,17 +99,23 @@ namespace LinqToDB.SqlQuery
 
 					if (dataType.DataType == DataType.Undefined)
 					{
-						var  canBeNull = field.Nullable;
+						var  canBeNull = field.CanBeNull;
 
 						dataType = mappingSchema.GetUnderlyingDataType(field.SystemType, ref canBeNull);
 
-						field.Nullable = canBeNull;
+						field.CanBeNull = canBeNull;
 					}
 
 					field.DataType = dataType.DataType;
 
 					if (field.Length == null)
 						field.Length = dataType.Length;
+
+					if (field.Precision == null)
+						field.Precision = dataType.Precision;
+
+					if (field.Scale == null)
+						field.Scale = dataType.Scale;
 				}
 			}
 
@@ -329,9 +336,9 @@ namespace LinqToDB.SqlQuery
 
 		#region ISqlExpression Members
 
-		bool ISqlExpression.CanBeNull()
+		bool ISqlExpression.CanBeNull
 		{
-			return true;
+			get { return true; }
 		}
 
 		public bool Equals(ISqlExpression other, Func<ISqlExpression,ISqlExpression,bool> comparer)

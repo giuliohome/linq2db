@@ -393,6 +393,62 @@ namespace Tests.Linq
 					from p in    Parent where p.Value1.GetValueOrDefault() > 0 select new { Value = p.Value1.GetValueOrDefault() },
 					from p in db.Parent where p.Value1.GetValueOrDefault() > 0 select new { Value = p.Value1.GetValueOrDefault() });
 		}
+
+		[Test, DataContextSource]
+		public void AsNullTest(string context)
+		{
+			using (var db = GetDataContext(context))
+				AreEqual(
+					from p1 in    Parent
+					from p2 in    Parent
+					where p1.Value1 == p2.Value1
+					select p1,
+					from p1 in db.Parent
+					from p2 in db.Parent
+					where p1.Value1 == p2.Value1
+					select p1);
+		}
+
+		[Test, DataContextSource]
+		public void AsNotNullTest(string context)
+		{
+			using (var db = GetDataContext(context))
+				AreEqual(
+					from p1 in    Parent
+					from p2 in    Parent
+					where p1.Value1 != null && p1.Value1 == p2.Value1
+					select p1,
+					from p1 in db.Parent
+					from p2 in db.Parent
+					where Sql.AsNotNull(p1.Value1) == Sql.AsNotNull(p2.Value1)
+					select p1);
+		}
+
+		[Test, DataContextSource]
+		public void Between1(string context)
+		{
+			using (var db = GetDataContext(context))
+				AreEqual(
+					from p in    Parent
+					where p.Value1.Between(1, 10)
+					select p,
+					from p in db.Parent
+					where p.Value1.Between(1, 10)
+					select p);
+		}
+
+		[Test, DataContextSource]
+		public void Between2(string context)
+		{
+			using (var db = GetDataContext(context))
+				AreEqual(
+					from p in    Parent
+					where p.ParentID.Between(1, 10)
+					select p,
+					from p in db.Parent
+					where p.ParentID.Between(1, 10)
+					select p);
+		}
 	}
 
 	public static class FunctionExtension

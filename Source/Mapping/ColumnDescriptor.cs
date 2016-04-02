@@ -38,6 +38,7 @@ namespace LinqToDB.Mapping
 			IsDiscriminator = columnAttribute.IsDiscriminator;
 			DataType        = columnAttribute.DataType;
 			DbType          = columnAttribute.DbType;
+			CreateFormat    = columnAttribute.CreateFormat;
 
 			if (columnAttribute.HasLength   ()) Length    = columnAttribute.Length;
 			if (columnAttribute.HasPrecision()) Precision = columnAttribute.Precision;
@@ -89,6 +90,20 @@ namespace LinqToDB.Mapping
 					PrimaryKeyOrder = a.Order;
 				}
 			}
+
+			if (DbType == null || DataType == DataType.Undefined)
+			{
+				var a = mappingSchema.GetAttribute<DataTypeAttribute>(MemberInfo, attr => attr.Configuration);
+
+				if (a != null)
+				{
+					if (DbType == null)
+						DbType = a.DbType;
+
+					if (DataType == DataType.Undefined && a.DataType.HasValue)
+						DataType = a.DataType.Value;
+				}
+			}
 		}
 
 		public MappingSchema  MappingSchema   { get; private set; }
@@ -110,6 +125,7 @@ namespace LinqToDB.Mapping
 		public int?           Length          { get; private set; }
 		public int?           Precision       { get; private set; }
 		public int?           Scale           { get; private set; }
+		public string         CreateFormat    { get; private set; }
 
 		Func<object,object> _getter;
 

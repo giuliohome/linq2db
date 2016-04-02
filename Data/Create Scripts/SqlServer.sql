@@ -681,3 +681,77 @@ CREATE TABLE [Name.Test]
 )
 GO
 
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'GuidID')
+BEGIN DROP TABLE [GuidID] END
+GO
+
+CREATE TABLE [GuidID]
+(
+	ID uniqueidentifier default(NewID()) PRIMARY KEY CLUSTERED,
+	Field1 int
+)
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'GuidID2')
+BEGIN DROP TABLE [GuidID2] END
+GO
+
+CREATE TABLE [GuidID2]
+(
+	ID uniqueidentifier default(NewID()) PRIMARY KEY CLUSTERED
+)
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'DecimalOverflow')
+BEGIN DROP TABLE [DecimalOverflow] END
+GO
+
+CREATE TABLE [DecimalOverflow]
+(
+	Decimal1 decimal(38,20) NOT NULL PRIMARY KEY CLUSTERED,
+	Decimal2 decimal(31,2),
+	Decimal3 decimal(38,36),
+	Decimal4 decimal(29,0),
+	Decimal5 decimal(38,38)
+)
+GO
+
+INSERT INTO [DecimalOverflow]
+SELECT  123456789012345.12345678901234567890,  1234567890123456789.91,  12.345678901234512345678901234567890,  1234567890123456789,  .12345678901234512345678901234567890 UNION ALL
+SELECT -123456789012345.12345678901234567890, -1234567890123456789.91, -12.345678901234512345678901234567890, -1234567890123456789, -.12345678901234512345678901234567890 UNION ALL
+SELECT  12345678901234.567890123456789,                          NULL,                                  NULL,                 NULL,                                  NULL UNION ALL
+SELECT -12345678901234.567890123456789,                          NULL,                                  NULL,                 NULL,                                  NULL UNION ALL
+SELECT  12345678901234.56789012345678,                           NULL,                                  NULL,                 NULL,                                  NULL UNION ALL
+SELECT -12345678901234.56789012345678,                           NULL,                                  NULL,                 NULL,                                  NULL UNION ALL
+SELECT  12345678901234.5678901234567,                            NULL,                                  NULL,                 NULL,                                  NULL UNION ALL
+SELECT -12345678901234.5678901234567,                            NULL,                                  NULL,                 NULL,                                  NULL
+
+GO
+
+-- SKIP SqlServer.2005 BEGIN
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'SqlTypes')
+BEGIN DROP TABLE [SqlTypes] END
+GO
+
+CREATE TABLE [SqlTypes]
+(
+	ID  int NOT NULL PRIMARY KEY CLUSTERED,
+	HID hierarchyid,
+)
+GO
+
+INSERT INTO [SqlTypes]
+SELECT 1, hierarchyid::Parse('/')      UNION ALL
+SELECT 2, hierarchyid::Parse('/1/')    UNION ALL
+SELECT 3, hierarchyid::Parse('/1/1/')  UNION ALL
+SELECT 4, hierarchyid::Parse('/1/2/')  UNION ALL
+SELECT 5, hierarchyid::Parse('/2/')    UNION ALL
+SELECT 6, hierarchyid::Parse('/2/1/')  UNION ALL
+SELECT 7, hierarchyid::Parse('/2/2/')  UNION ALL
+SELECT 8, hierarchyid::Parse('/2/1/1/')
+
+GO
+
+-- SKIP SqlServer.2005 END
+

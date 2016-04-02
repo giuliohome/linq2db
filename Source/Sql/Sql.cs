@@ -4,6 +4,8 @@ using System.Data.Linq;
 using System.Globalization;
 using System.Reflection;
 
+using JetBrains.Annotations;
+
 using PN = LinqToDB.ProviderName;
 
 // ReSharper disable CheckNamespace
@@ -16,6 +18,7 @@ namespace LinqToDB
 	using Linq;
 	using SqlQuery;
 
+	[PublicAPI]
 	public static partial class Sql
 	{
 		#region Common Functions
@@ -41,13 +44,35 @@ namespace LinqToDB
 		}
 
 		[CLSCompliant(false)]
+		[Sql.Expression("{0}", 0, CanBeNull = true)]
+		public static T AsNullable<T>(T value)
+		{
+			return value;
+		}
+
+		[CLSCompliant(false)]
+		[Sql.Expression("{0}", 0, CanBeNull = false)]
+		public static T AsNotNull<T>(T value)
+		{
+			return value;
+		}
+
+		[CLSCompliant(false)]
+		[Sql.Expression("{0}", 0, CanBeNull = false)]
+		public static T AsNotNullable<T>(T value)
+		{
+			return value;
+		}
+
+		[CLSCompliant(false)]
 		[Sql.Expression("{0}", 0)]
-		public static T? AsNullable<T>(T value)
+		public static T? ToNullable<T>(T value)
 			where T : struct
 		{
 			return value;
 		}
 
+		[Obsolete("Use ToNotNullable instead.")]
 		[CLSCompliant(false)]
 		[Sql.Expression("{0}", 0)]
 		public static T ConvertNullable<T>(T? value)
@@ -58,10 +83,32 @@ namespace LinqToDB
 
 		[CLSCompliant(false)]
 		[Sql.Expression("{0}", 0)]
-		public static T AsNotNull<T>(T? value)
+		public static T ToNotNull<T>(T? value)
 			where T : struct
 		{
 			return value ?? default(T);
+		}
+
+		[CLSCompliant(false)]
+		[Sql.Expression("{0}", 0)]
+		public static T ToNotNullable<T>(T? value)
+			where T : struct
+		{
+			return value ?? default(T);
+		}
+
+		[Sql.Expression("{0} BETWEEN {1} AND {2}", PreferServerSide = true, IsPredicate = true)]
+		public static bool Between<T>(this T value, T low, T high)
+			where T : IComparable
+		{
+			return value != null && value.CompareTo(low) >= 0 && value.CompareTo(high) <= 0;
+		}
+
+		[Sql.Expression("{0} BETWEEN {1} AND {2}", PreferServerSide = true, IsPredicate = true)]
+		public static bool Between<T>(this T? value, T? low, T? high)
+			where T : struct, IComparable
+		{
+			return value != null && value.Value.CompareTo(low) >= 0 && value.Value.CompareTo(high) <= 0;
 		}
 
 		#endregion
@@ -267,17 +314,17 @@ namespace LinqToDB
 			return str == null ? null : (int?)str.Length;
 		}
 
-		[Sql.Function]
-		[Sql.Function  (PN.Access,   "Mid")]
-		[Sql.Function  (PN.DB2,      "Substr")]
-		[Sql.Function  (PN.Informix, "Substr")]
-		[Sql.Function  (PN.Oracle,   "Substr")]
-		[Sql.Function  (PN.SQLite,   "Substr")]
-		[Sql.Expression(PN.Firebird, "Substring({0} from {1} for {2})")]
-		[Sql.Function  (PN.SapHana,  "Substring")]
+		[Sql.Function  (                                                PreferServerSide = true)]
+		[Sql.Function  (PN.Access,   "Mid",                             PreferServerSide = true)]
+		[Sql.Function  (PN.DB2,      "Substr",                          PreferServerSide = true)]
+		[Sql.Function  (PN.Informix, "Substr",                          PreferServerSide = true)]
+		[Sql.Function  (PN.Oracle,   "Substr",                          PreferServerSide = true)]
+		[Sql.Function  (PN.SQLite,   "Substr",                          PreferServerSide = true)]
+		[Sql.Expression(PN.Firebird, "Substring({0} from {1} for {2})", PreferServerSide = true)]
+		[Sql.Function  (PN.SapHana,  "Substring",                       PreferServerSide = true)]
 		public static string Substring(string str, int? startIndex, int? length)
 		{
-			return str == null || startIndex == null || length == null ? null : str.Substring(startIndex.Value, length.Value);
+			return str == null || startIndex == null || length == null ? null : str.Substring(startIndex.Value - 1, length.Value);
 		}
 
 		[Sql.Function(ServerSideOnly = true)]
@@ -673,7 +720,7 @@ namespace LinqToDB
 		[LinqToDB.Sql.DatePartAttribute(PN.Oracle,     "Add{0}",                              false, 0, 2, 1)]
 		[LinqToDB.Sql.DatePartAttribute(PN.DB2,        "{{1}} + {0}",                         Precedence.Additive, true, new[] { "{0} Year", "({0} * 3) Month", "{0} Month", "{0} Day", "{0} Day", "({0} * 7) Day", "{0} Day", "{0} Hour", "{0} Minute", "{0} Second", "({0} * 1000) Microsecond" }, 0, 1, 2)]
 		[LinqToDB.Sql.DatePartAttribute(PN.Informix,   "{{1}} + Interval({0}",                Precedence.Additive, true, new[] { "{0}) Year to Year", "{0}) Month to Month * 3", "{0}) Month to Month", "{0}) Day to Day", "{0}) Day to Day", "{0}) Day to Day * 7", "{0}) Day to Day", "{0}) Hour to Hour", "{0}) Minute to Minute", "{0}) Second to Second", null }, 0, 1, 2)]
-		[LinqToDB.Sql.DatePartAttribute(PN.PostgreSQL, "{{1}} + Interval '{{0}} {0}",         Precedence.Additive, true, new[] { "Year'", "Month' * 3", "Month'", "Day'", "Day'", "Day' * 7", "Day'", "Hour'", "Minute'", "Second'", "Millisecond'" }, 0, 1, 2)]
+		[LinqToDB.Sql.DatePartAttribute(PN.PostgreSQL, "{{1}} + {{0}} * Interval '1 {0}",     Precedence.Additive, true, new[] { "Year'", "Month' * 3", "Month'", "Day'", "Day'", "Day' * 7", "Day'", "Hour'", "Minute'", "Second'", "Millisecond'" }, 0, 1, 2)]
 		[LinqToDB.Sql.DatePartAttribute(PN.MySql,      "Date_Add({{1}}, Interval {{0}} {0})", true, new[] { null, null, null, "Day", null, null, "Day", null, null, null, null }, 0, 1, 2)]
 		[LinqToDB.Sql.DatePartAttribute(PN.SQLite,     "DateTime({{1}}, '{{0}} {0}')",        true, new[] { null, null, null, "Day", null, null, "Day", null, null, null, null }, 0, 1, 2)]
 		[LinqToDB.Sql.DatePartAttribute(PN.Access,     "DateAdd({0}, {{0}}, {{1}})",          true, new[] { "'yyyy'", "'q'", "'m'", "'y'", "'d'", "'ww'", "'w'", "'h'", "'n'", "'s'", null }, 0, 1, 2)]
@@ -995,7 +1042,7 @@ namespace LinqToDB
 
 		#region Text Functions
 
-		[Sql.Expression("FREETEXT({0}, {1})", ServerSideOnly = true)]
+		[Sql.Expression("FREETEXT({0}, {1})", ServerSideOnly = true, IsPredicate = true)]
 		public static bool FreeText(object table, string text)
 		{
 			throw new LinqException("'FreeText' is only server-side method.");

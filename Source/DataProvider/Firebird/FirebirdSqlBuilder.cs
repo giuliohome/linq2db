@@ -13,7 +13,7 @@ namespace LinqToDB.DataProvider.Firebird
 	using SqlQuery;
 	using SqlProvider;
 
-	class FirebirdSqlBuilder : BasicSqlBuilder
+	public class FirebirdSqlBuilder : BasicSqlBuilder
 	{
 		public FirebirdSqlBuilder(ISqlOptimizer sqlOptimizer, SqlProviderFlags sqlProviderFlags, ValueToSqlConverter valueToSqlConverter)
 			: base(sqlOptimizer, sqlProviderFlags, valueToSqlConverter)
@@ -80,9 +80,7 @@ namespace LinqToDB.DataProvider.Firebird
 				case DataType.Byte          : StringBuilder.Append("SmallInt");        break;
 				case DataType.Money         : StringBuilder.Append("Decimal(18,4)");   break;
 				case DataType.SmallMoney    : StringBuilder.Append("Decimal(10,4)");   break;
-#if !MONO
 				case DataType.DateTime2     :
-#endif
 				case DataType.SmallDateTime :
 				case DataType.DateTime      : StringBuilder.Append("TimeStamp");       break;
 				case DataType.NVarChar      :
@@ -211,7 +209,7 @@ namespace LinqToDB.DataProvider.Firebird
 
 		protected override void BuildCreateTableNullAttribute(SqlField field, DefaulNullable defaulNullable)
 		{
-			if (!field.Nullable)
+			if (!field.CanBeNull)
 				StringBuilder.Append("NOT NULL");
 		}
 
