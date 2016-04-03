@@ -735,16 +735,21 @@ namespace LinqToDB.Expressions
                     var argp = (ParameterExpression)inv.Arguments[0];
                     
                      var fe = l.Value;
-                 
 
-                     
-                        
+                 
+                     var my_lambda = fe.GetType();
+                     var funcl = my_lambda.GetField("lambda");
+                     var funcl_v = funcl.GetValue(fe);
+                     var mm = inv.Expression.GetMembers()[1];
+                     var mm_lambda = (mm as MemberExpression).Expression;
+                     var mm_types = (mm_lambda as ConstantExpression).Type.GenericTypeArguments;
+
                         var ret_not_work=  Expression.Lambda<Func<object>>(mexp);
                     //var argp = (ParameterExpression)((InvocationExpression)ex).Arguments[0];
 
                     //return Expression.Lambda<Func<Expression>>((Expression)bf.Target,argp);
-                     Type T2 = typeof(db_test.Foo);
-                        Type T1 = typeof(db_test.Bar);
+                     Type T2 = mm_types[1];
+                        Type T1 = mm_types[0];
                      
                         var pf = Expression.Parameter(T2, "q");
                      var pb = Expression.Parameter(T1, "b");
