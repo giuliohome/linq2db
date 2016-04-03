@@ -147,23 +147,23 @@ namespace LinqToDB.Linq
 #endif
 						}
 
-						//try
-						//{
+						try
+						{
 							query = new ExpressionBuilder(new Query<T>(), dataContextInfo, expr, null).Build<T>();
-						//}
-//                        catch (Exception)
-//                        {
-//                            if (!Configuration.Linq.GenerateExpressionTest)
-//                            {
-//#if !SILVERLIGHT && !NETFX_CORE
-//                                DataConnection.WriteTraceLine(
-//                                    "To generate test code to diagnose the problem set 'LinqToDB.Common.Configuration.Linq.GenerateExpressionTest = true'.",
-//                                    DataConnection.TraceSwitch.DisplayName);
-//#endif
-//                            }
+						}
+                        catch (Exception)
+                        {
+                            if (!Configuration.Linq.GenerateExpressionTest)
+                            {
+#if !SILVERLIGHT && !NETFX_CORE
+                                DataConnection.WriteTraceLine(
+                                    "To generate test code to diagnose the problem set 'LinqToDB.Common.Configuration.Linq.GenerateExpressionTest = true'.",
+                                    DataConnection.TraceSwitch.DisplayName);
+#endif
+                            }
 
-//                            throw;
-//                        }
+                            throw;
+                        }
 
 						if (!query.DoNotChache)
 						{

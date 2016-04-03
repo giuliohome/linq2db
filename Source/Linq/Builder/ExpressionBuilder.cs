@@ -394,28 +394,11 @@ namespace LinqToDB.Linq.Builder
 
 		readonly Dictionary<Expression, Expression> _optimizedExpressions = new Dictionary<Expression, Expression>();
 
-        Expression OptimizeExpression(Expression expression, Expression expression2help = null)
+        Expression OptimizeExpression(Expression expression)
 		{
 			Expression expr;
 
-            if (expression.NodeType.Equals(ExpressionType.Invoke))
-            {
-                Type T2 = typeof(db_test.Foo);
-                Type T1 = typeof(db_test.Bar);
-
-                var pf = Expression.Parameter(T2, "q");
-                var pb = Expression.Parameter(T1, "b");
-                PropertyInfo FooId = T2.GetProperty("id");
-                PropertyInfo BarId = T1.GetProperty("id");
-                var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
-                var lambdaInt = Expression.Lambda(eqexpr, pf); //<Func<db_test.Foo, bool>>
-                //var lambdaExpr = Expression.Lambda(lambdaInt, pb); //<Func<db_test.Bar, Func<db_test.Foo, bool>>>
-
-                var quoteExpr = Expression.Quote(lambdaInt);
-                expression = lambdaInt;
-            }
-
-			if (_optimizedExpressions.TryGetValue(expression, out expr))
+            if (_optimizedExpressions.TryGetValue(expression, out expr))
 				return expr;
 
 			_optimizedExpressions[expression] = expr = expression.Transform((Func<Expression,TransformInfo>)OptimizeExpressionImpl);
@@ -427,38 +410,6 @@ namespace LinqToDB.Linq.Builder
 		{
 			switch (expr.NodeType)
 			{
-                case ExpressionType.Invoke:
-                    {
-                        var inv = (InvocationExpression)expr;
-                        var mexp = ((MemberExpression)inv.Expression);
-                        var l = (ConstantExpression)mexp.Expression;
-                        var argp = (ParameterExpression)inv.Arguments[0];
-
-                        var fe = l.Value;
-
-
-                        var ret_not_work = Expression.Lambda<Func<object>>(mexp);
-                        //var argp = (ParameterExpression)((InvocationExpression)ex).Arguments[0];
-
-                        //return Expression.Lambda<Func<Expression>>((Expression)bf.Target,argp);
-                        Type T2 = typeof(db_test.Foo);
-                        Type T1 = typeof(db_test.Bar);
-
-                        var pf = Expression.Parameter(T2, "q");
-                        var pb = Expression.Parameter(T1, "b");
-                        PropertyInfo FooId = T2.GetProperty("id");
-                        PropertyInfo BarId = T1.GetProperty("id");
-                        var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
-                        var lambdaInt = Expression.Lambda(eqexpr, pf); //<Func<db_test.Foo, bool>>
-                        //var lambdaExpr = Expression.Lambda(lambdaInt, pb); //<Func<db_test.Bar, Func<db_test.Foo, bool>>>
-
-                        var quoteExpr = Expression.Quote(lambdaInt);
-                        //return lambdaInt;
-                        return new TransformInfo(ConvertSubquery(lambdaInt));
-
-
-                    }
-                
                 case ExpressionType.MemberAccess:
 					{
 						var me = (MemberExpression)expr;
@@ -651,14 +602,15 @@ namespace LinqToDB.Linq.Builder
 
             
             var sequence  = OptimizeExpression(method.Arguments[0]);
-            var predicate = OptimizeExpression(method.Arguments[1].Unwrap(method.Arguments[0]));
+            var predicate = OptimizeExpression(method.Arguments[1]);
 			var lambda    = (LambdaExpression)predicate.Unwrap();
-			var lbody     = lambda.Body;
+            var lparam = lambda.Parameters[0];
+            var lbody     = lambda.Body;
 
-			if (lambda.Parameters.Count != 1 )
+			if (lambda.Parameters.Count > 1 )
 				return method;
             
-            var lparam = lambda.Parameters[0];
+            
 			
 			var exprs     = new List<Expression>();
 

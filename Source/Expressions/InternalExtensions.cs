@@ -717,7 +717,7 @@ namespace LinqToDB.Expressions
 
 		#region Helpers
 
-		public static Expression Unwrap(this Expression ex, Expression expr2help = null)
+		public static Expression Unwrap(this Expression ex)
 		{
 			if (ex == null)
 				return null;

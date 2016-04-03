@@ -617,18 +617,7 @@ namespace LinqToDB.Linq.Builder
 			return res;
 		}
 
-        private bool RefNameEquals( Expression expression, ParameterExpression par)
-        {
-            ParameterExpression comp = expression as ParameterExpression;
-            if (comp == null)
-            {
-                return false;
-            }
-            return (comp.Name.Equals(par.Name) && comp.Type.Equals(par.Type));
-
-        }
-
-		public IsExpressionResult IsExpressionInternal( Expression expression, int level, RequestFor requestFlag)
+       public IsExpressionResult IsExpressionInternal( Expression expression, int level, RequestFor requestFlag)
 		{
 			switch (requestFlag)
 			{
@@ -636,8 +625,8 @@ namespace LinqToDB.Linq.Builder
 				case RequestFor.Root     :
 					return new IsExpressionResult(
                         Sequence.Length == 1 ?
-                        RefNameEquals( expression, Lambda.Parameters[0]) :
-                        Lambda.Parameters.Any(p => RefNameEquals( expression, p))
+                        ReferenceEquals( expression, Lambda.Parameters[0]) :
+                        Lambda.Parameters.Any(p => ReferenceEquals(expression, p))
                         );
 			}
 
