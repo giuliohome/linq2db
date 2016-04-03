@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Data;
 using System.Data.Linq;
+using System.Data.SqlClient;
 using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Linq;
@@ -9,8 +11,8 @@ using System.Xml.Linq;
 using LinqToDB;
 using LinqToDB.Common;
 using LinqToDB.Data;
+using LinqToDB.DataProvider.SqlServer;
 using LinqToDB.Mapping;
-using LinqToDB.SqlQuery;
 
 using Microsoft.SqlServer.Types;
 
@@ -18,12 +20,10 @@ using NUnit.Framework;
 
 namespace Tests.DataProvider
 {
-	using Model;
-
 	[TestFixture]
 	public class SqlServerTest : DataProviderTestBase
 	{
-		[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+		[AttributeUsage(AttributeTargets.Method)]
 		class SqlServerDataContextAttribute : IncludeDataContextSourceAttribute
 		{
 			public SqlServerDataContextAttribute()
@@ -194,7 +194,7 @@ namespace Tests.DataProvider
 				TestNumeric(conn, ulong.MaxValue,    DataType.UInt64,     "bigint bit decimal int money numeric smallint smallmoney tinyint float real");
 
 				TestNumeric(conn, -3.40282306E+38f,  DataType.Single,     "bigint bit decimal decimal(38) int money numeric numeric(38) smallint smallmoney tinyint");
-				TestNumeric(conn, 3.40282306E+38f,   DataType.Single,     "bigint bit decimal decimal(38) int money numeric numeric(38) smallint smallmoney tinyint");
+				TestNumeric(conn,  3.40282306E+38f,  DataType.Single,     "bigint bit decimal decimal(38) int money numeric numeric(38) smallint smallmoney tinyint");
 				TestNumeric(conn, -1.79E+308d,       DataType.Double,     "bigint bit decimal decimal(38) int money numeric numeric(38) smallint smallmoney tinyint real");
 				TestNumeric(conn,  1.79E+308d,       DataType.Double,     "bigint bit decimal decimal(38) int money numeric numeric(38) smallint smallmoney tinyint real");
 				TestNumeric(conn, decimal.MinValue,  DataType.Decimal,    "bigint bit decimal int money numeric smallint smallmoney tinyint float real");
@@ -865,36 +865,46 @@ namespace Tests.DataProvider
 			#endregion
 		};
 
-		[Test, SqlServerDataContext]
-		public void BulkCopyAllTypes(string context)
+		void BulkCopyAllTypes(string context, BulkCopyType bulkCopyType)
 		{
-			foreach (var bulkCopyType in new[] { BulkCopyType.MultipleRows, BulkCopyType.ProviderSpecific })
+			using (var db = new DataConnection(context))
 			{
-				using (var db = new DataConnection(context))
-				{
-					db.GetTable<AllTypes>().Delete(p => p.ID >= _allTypeses[0].ID);
+				db.CommandTimeout = 60;
 
-					db.BulkCopy(
-						new BulkCopyOptions
-						{
-							BulkCopyType       = bulkCopyType,
-							RowsCopiedCallback = copied => Debug.WriteLine(copied.RowsCopied),
-							KeepIdentity       = true,
-						},
-						_allTypeses);
+				db.GetTable<AllTypes>().Delete(p => p.ID >= _allTypeses[0].ID);
 
-					var ids = _allTypeses.Select(at => at.ID).ToArray();
+				db.BulkCopy(
+					new BulkCopyOptions
+					{
+						BulkCopyType       = bulkCopyType,
+						RowsCopiedCallback = copied => Debug.WriteLine(copied.RowsCopied),
+						KeepIdentity       = true,
+					},
+					_allTypeses);
 
-					var list = db.GetTable<AllTypes>().Where(t => ids.Contains(t.ID)).OrderBy(t => t.ID).ToList();
+				var ids = _allTypeses.Select(at => at.ID).ToArray();
 
-					db.GetTable<AllTypes>().Delete(p => p.ID >= _allTypeses[0].ID);
+				var list = db.GetTable<AllTypes>().Where(t => ids.Contains(t.ID)).OrderBy(t => t.ID).ToList();
 
-					Assert.That(list.Count, Is.EqualTo(_allTypeses.Length));
+				db.GetTable<AllTypes>().Delete(p => p.ID >= _allTypeses[0].ID);
 
-					for (var i = 0; i < list.Count; i++)
-						CompareObject(db.MappingSchema, list[i], _allTypeses[i]);
-				}
+				Assert.That(list.Count, Is.EqualTo(_allTypeses.Length));
+
+				for (var i = 0; i < list.Count; i++)
+					CompareObject(db.MappingSchema, list[i], _allTypeses[i]);
 			}
+		}
+
+		[Test, SqlServerDataContext]
+		public void BulkCopyAllTypesMultipleRows(string context)
+		{
+			BulkCopyAllTypes(context, BulkCopyType.MultipleRows);
+		}
+
+		[Test, SqlServerDataContext]
+		public void BulkCopyAllTypesProviderSpecific(string context)
+		{
+			BulkCopyAllTypes(context, BulkCopyType.ProviderSpecific);
 		}
 
 		void CompareObject<T>(MappingSchema mappingSchema, T actual, T test)
@@ -943,6 +953,106 @@ namespace Tests.DataProvider
 
 				db.DropTable<AllTypes>();
 			}
+		}
+
+		[Table("#TempTable")]
+		class TempTable
+		{
+			[PrimaryKey] public int ID;
+		}
+
+		[Test, SqlServerDataContext]
+		public void CreateTempTable(string context)
+		{
+			using (var db = new DataConnection(context))
+			{
+				db.CreateTable<TempTable>();
+				db.DropTable<TempTable>();
+				db.CreateTable<TempTable>();
+			}
+		}
+
+		[Test, SqlServerDataContext]
+		public void CreateTempTable2(string context)
+		{
+			using (var db1 = new DataConnection(context))
+			using (var db2 = new DataConnection(context))
+			{
+				db1.CreateTable<TempTable>();
+				db2.CreateTable<TempTable>();
+			}
+		}
+
+		[Table("DecimalOverflow")]
+		class DecimalOverflow
+		{
+			[Column] public decimal Decimal1;
+			[Column] public decimal Decimal2;
+			[Column] public decimal Decimal3;
+		}
+
+		[Test, SqlServerDataContext]
+		public void OverflowTest(string context)
+		{
+			var func = SqlServerTools.DataReaderGetDecimal;
+
+			SqlServerTools.DataReaderGetDecimal = GetDecimal;
+
+			using (var db = new DataConnection(context))
+			{
+				var list = db.GetTable<DecimalOverflow>().ToList();
+			}
+
+			SqlServerTools.DataReaderGetDecimal = func;
+		}
+
+		const int ClrPrecision = 29;
+
+		static decimal GetDecimal(IDataReader rd, int idx)
+		{
+			try
+			{
+				var value = ((SqlDataReader)rd).GetSqlDecimal(idx);
+
+				if (value.Precision > ClrPrecision)
+				{
+					var str = value.ToString();
+					var val = decimal.Parse(str);
+
+					return val;
+				}
+
+				return value.Value;
+			}
+			catch (Exception)
+			{
+				var vvv=  rd.GetValue(idx);
+				
+				throw;
+			}
+		}
+
+		[Table("DecimalOverflow")]
+		class DecimalOverflow2
+		{
+			[Column] public SqlDecimal Decimal1;
+			[Column] public SqlDecimal Decimal2;
+			[Column] public SqlDecimal Decimal3;
+		}
+
+		[Test, SqlServerDataContext]
+		public void OverflowTest2(string context)
+		{
+			var func = SqlServerTools.DataReaderGetDecimal;
+
+			SqlServerTools.DataReaderGetDecimal = (rd,idx) => { throw new Exception(); };
+
+			using (var db = new DataConnection(context))
+			{
+				var list = db.GetTable<DecimalOverflow2>().ToList();
+			}
+
+			SqlServerTools.DataReaderGetDecimal = func;
 		}
 	}
 }

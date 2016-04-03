@@ -64,7 +64,7 @@ namespace LinqToDB.Data
 
 		public IEnumerable<T> Query<T>(Func<IDataReader,T> objectReader)
 		{
-			DataConnection.InitCommand(CommandType, CommandText, Parameters);
+			DataConnection.InitCommand(CommandType, CommandText, Parameters, null);
 
 			if (Parameters != null && Parameters.Length > 0)
 				SetParameters(DataConnection, Parameters);
@@ -135,7 +135,7 @@ namespace LinqToDB.Data
 
 		public IEnumerable<T> Query<T>()
 		{
-			DataConnection.InitCommand(CommandType, CommandText, Parameters);
+			DataConnection.InitCommand(CommandType, CommandText, Parameters, null);
 
 			if (Parameters != null && Parameters.Length > 0)
 				SetParameters(DataConnection, Parameters);
@@ -274,7 +274,7 @@ namespace LinqToDB.Data
 
 		public int Execute()
 		{
-			DataConnection.InitCommand(CommandType, CommandText, Parameters);
+			DataConnection.InitCommand(CommandType, CommandText, Parameters, null);
 
 			var hasParameters = Parameters != null && Parameters.Length > 0;
 
@@ -336,7 +336,7 @@ namespace LinqToDB.Data
 
 		public T Execute<T>()
 		{
-			DataConnection.InitCommand(CommandType, CommandText, Parameters);
+			DataConnection.InitCommand(CommandType, CommandText, Parameters, null);
 
 			if (Parameters != null && Parameters.Length > 0)
 				SetParameters(DataConnection, Parameters);
@@ -357,6 +357,10 @@ namespace LinqToDB.Data
 						return objectReader(rd);
 					}
 					catch (InvalidCastException)
+					{
+						return GetObjectReader2<T>(DataConnection, rd, CommandText)(rd);
+					}
+					catch (FormatException)
 					{
 						return GetObjectReader2<T>(DataConnection, rd, CommandText)(rd);
 					}
@@ -416,7 +420,7 @@ namespace LinqToDB.Data
 
 		public DataReader ExecuteReader()
 		{
-			DataConnection.InitCommand(CommandType, CommandText, Parameters);
+			DataConnection.InitCommand(CommandType, CommandText, Parameters, null);
 
 			if (Parameters != null && Parameters.Length > 0)
 				SetParameters(DataConnection, Parameters);
@@ -703,7 +707,7 @@ namespace LinqToDB.Data
 											Expression.Constant(m.ColumnName));
 									}
 
-									if (memberType.IsEnum)
+									if (memberType.IsEnumEx())
 									{
 										var mapType  = ConvertBuilder.GetDefaultMappingFromEnumType(dataConnection.MappingSchema, memberType);
 										var convExpr = dataConnection.MappingSchema.GetConvertExpression(m.MemberType, mapType);
@@ -788,6 +792,12 @@ namespace LinqToDB.Data
 		}
 
 		static readonly ConcurrentDictionary<QueryKey,Delegate> _objectReaders = new ConcurrentDictionary<QueryKey,Delegate>();
+
+		public static void ClearObjectReaderCache()
+		{
+			_objectReaders.   Clear();
+			_parameterReaders.Clear();
+		}
 
 		static Func<IDataReader,T> GetObjectReader<T>(DataConnection dataConnection, IDataReader dataReader, string sql)
 		{

@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 using LinqToDB;
 using LinqToDB.Mapping;
 
 using NUnit.Framework;
-using Tests.DataProvider;
+
+#pragma warning disable 472 // The result of the expression is always the same since a value of this type is never equal to 'null'
 
 namespace Tests.Linq
 {
@@ -510,8 +510,8 @@ namespace Tests.Linq
 
 					var list = q.ToList();
 
-					Assert.That(list.Count, Is.GreaterThan(0));
-					Assert.That(list[0].Children,    Is.Not.Null);
+					Assert.That(list.Count,       Is.GreaterThan(0));
+					Assert.That(list[0].Children, Is.Not.Null);
 				}
 			}
 			finally
@@ -538,6 +538,33 @@ namespace Tests.Linq
 				var value = db.GetTable<Parent170>().Where(x => x.Value1 == null).Select(x => (int?)x.Parent.Value1).First();
 
 				Assert.That(value, Is.Null);
+			}
+		}
+
+		[Table("Child")]
+		class StorageTestClass
+		{
+			[Column] public int ParentID;
+			[Column] public int ChildID;
+
+			Parent _parent;
+
+			[Association(ThisKey = "ParentID", OtherKey = "ParentID", CanBeNull = false, Storage = "_parent")]
+			public Parent Parent
+			{
+				get { return _parent; }
+				set { throw new InvalidOperationException(); }
+			}
+		}
+
+		[Test, DataContextSource]
+		public void StorageText(string context)
+		{
+			using (var db = GetDataContext(context))
+			{
+				var value = db.GetTable<StorageTestClass>().LoadWith(x => x.Parent).First();
+
+				Assert.That(value.Parent, Is.Not.Null);
 			}
 		}
 	}

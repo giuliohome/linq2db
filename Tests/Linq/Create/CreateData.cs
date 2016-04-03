@@ -8,12 +8,12 @@ using LinqToDB.DataProvider.Access;
 
 using NUnit.Framework;
 
-namespace Tests.Create
+namespace Tests._Create
 {
 	using Model;
 
 	[TestFixture]
-	public class CreateData : TestBase
+	public class _CreateData : TestBase
 	{
 		static void RunScript(string configString, string divider, string name, Action<IDbConnection> action = null)
 		{
@@ -37,6 +37,8 @@ namespace Tests.Create
 
 			using (var db = new TestDataConnection(configString))
 			{
+				//db.CommandTimeout = 20;
+
 				foreach (var cmd in cmds)
 				{
 					var command = cmd.Trim();
@@ -70,7 +72,15 @@ namespace Tests.Create
 
 				Console.WriteLine("\nBulkCopy LinqDataTypes\n");
 
+				var options = new BulkCopyOptions
+				{
+#if MONO
+					BulkCopyType = BulkCopyType.MultipleRows
+#endif						
+				};
+
 				db.BulkCopy(
+					options,
 					new []
 					{
 						new LinqDataTypes { ID =  1, MoneyValue =  1.11m, DateTimeValue = new DateTime(2001,  1,  11,  1, 11, 21, 100), BoolValue = true,  GuidValue = new Guid("ef129165-6ffe-4df9-bb6b-bb16e413c883"), SmallIntValue =  1 },
@@ -90,6 +100,7 @@ namespace Tests.Create
 				Console.WriteLine("\nBulkCopy Parent\n");
 
 				db.BulkCopy(
+					options,
 					new []
 					{
 						new Parent { ParentID = 1, Value1 = 1    },
@@ -104,6 +115,7 @@ namespace Tests.Create
 				Console.WriteLine("\nBulkCopy Child\n");
 
 				db.BulkCopy(
+					options,
 					new []
 					{
 						new Child { ParentID = 1, ChildID = 11 },
@@ -128,6 +140,7 @@ namespace Tests.Create
 				Console.WriteLine("\nBulkCopy GrandChild\n");
 
 				db.BulkCopy(
+					options,
 					new []
 					{
 						new GrandChild { ParentID = 1, ChildID = 11, GrandChildID = 111 },
@@ -161,7 +174,7 @@ namespace Tests.Create
 
 		[Test, IncludeDataContextSource(ProviderName.DB2)]           public void DB2          (string ctx) { RunScript(ctx,          "\nGO\n",  "DB2");           }
 		[Test, IncludeDataContextSource(ProviderName.Informix)]      public void Informix     (string ctx) { RunScript(ctx,          "\nGO\n",  "Informix", InformixAction); }
-		[Test, IncludeDataContextSource(ProviderName.Oracle)]        public void Oracle       (string ctx) { RunScript(ctx,          "\n/\n",   "Oracle");        }
+		[Test, IncludeDataContextSource(ProviderName.OracleNative)]  public void Oracle       (string ctx) { RunScript(ctx,          "\n/\n",   "Oracle");        }
 		[Test, IncludeDataContextSource(ProviderName.Firebird)]      public void Firebird     (string ctx) { RunScript(ctx,          "COMMIT;", "Firebird");      }
 		[Test, IncludeDataContextSource(ProviderName.PostgreSQL)]    public void PostgreSQL   (string ctx) { RunScript(ctx,          "\nGO\n",  "PostgreSQL");    }
 		[Test, IncludeDataContextSource(ProviderName.MySql)]         public void MySql        (string ctx) { RunScript(ctx,          "\nGO\n",  "MySql");         }
@@ -179,6 +192,7 @@ namespace Tests.Create
 		[Test, IncludeDataContextSource(ProviderName.Access)]        public void Access       (string ctx) { RunScript(ctx,          "\nGO\n",  "Access",   AccessAction); }
 		[Test, IncludeDataContextSource(ProviderName.Access)]        public void AccessData   (string ctx) { RunScript(ctx+ ".Data", "\nGO\n",  "Access",   AccessAction); }
 		[Test, IncludeDataContextSource(ProviderName.SapHana)]       public void SapHana      (string ctx) { RunScript(ctx,          ";;\n"  ,  "SapHana");       }
+
 		static void AccessAction(IDbConnection connection)
 		{
 			using (var conn = AccessTools.CreateDataConnection(connection))
