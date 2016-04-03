@@ -49,7 +49,7 @@ namespace db_test
 }
 	
 	static class Test {
-		static internal void This<T1,T2>(Func<T1,Expression<Func<T2,bool>>> lambda) // 
+        static internal void This<T1, T2>(Func<T1, Expression<Func<T2, bool>>> lambda, Func<int,Expression<Func<T1, bool>>> straight) // 
 			where T2: class
             where T1 : class
 		{
@@ -64,11 +64,11 @@ namespace db_test
 
             using (var db = new MyContext()) {
                 var query =
-                    from b in db.GetTable<T1>()
+                    from b in db.GetTable<T1>().Where(straight(2))
                     from f in db.GetTable<T2>().Where(lambda(b)) //  q => q.id == b.id  
 					select new Tuple<T1,T2> (b,f);
 
-             
+             var debug_me = query.Expression;
                 
 				var queryList = query.ToList();
                 foreach (Tuple<T1, T2> telement in queryList)
@@ -123,7 +123,7 @@ namespace db_test
 			// TODO: Implement Functionality Here
 			
 			
-			Test.This<Bar, Foo>( k => (q => q.id == k.id));
+			Test.This<Bar, Foo>( k => (q => q.id == k.id), q => (a => a.id == q));
 
 			
 			
