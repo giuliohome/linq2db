@@ -19,7 +19,11 @@ namespace LinqToDB.Linq.Builder
 			var condition = (LambdaExpression)methodCall.Arguments[1].Unwrap();
 			var result    = builder.BuildWhere(buildInfo.Parent, sequence, condition, !isHaving, isHaving);
 
-			result.SetAlias(condition.Parameters[0].Name);
+            if (condition.Parameters.Count>0)
+            {
+                result.SetAlias(condition.Parameters[0].Name);
+            }
+			
 
 			return result;
 		}

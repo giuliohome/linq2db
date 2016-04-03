@@ -112,7 +112,7 @@ namespace LinqToDB.Linq.Builder
 				{
 					var args      = _methodCall.Method.GetGenericArguments();
 					var param     = Expression.Parameter(args[0], "param");
-					var expr      = _methodCall.Arguments[1];
+					var expr      = _methodCall.Arguments[1].Unwrap();
 					var condition = Expression.Lambda(Expression.Equal(param, expr), param);
 
 					IBuildContext ctx = new ExpressionContext(Parent, Sequence, condition);

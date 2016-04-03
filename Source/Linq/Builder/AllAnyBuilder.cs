@@ -19,7 +19,8 @@ namespace LinqToDB.Linq.Builder
 
 			if (methodCall.Arguments.Count == 2)
 			{
-				var condition = (LambdaExpression)methodCall.Arguments[1].Unwrap();
+  
+                var condition = (LambdaExpression)methodCall.Arguments[1].Unwrap();
 
 				if (methodCall.Method.Name == "All")
 					condition = Expression.Lambda(Expression.Not(condition.Body), condition.Name, condition.Parameters);

@@ -604,7 +604,7 @@ namespace LinqToDB.Linq.Builder
 					break;
 			}
 
-			var res = IsExpressionInternal(expression, level, requestFlag);
+			var res = IsExpressionInternal( expression, level, requestFlag);
 
 			switch (requestFlag)
 			{
@@ -617,15 +617,28 @@ namespace LinqToDB.Linq.Builder
 			return res;
 		}
 
-		public IsExpressionResult IsExpressionInternal(Expression expression, int level, RequestFor requestFlag)
+        private bool RefNameEquals( Expression expression, ParameterExpression par)
+        {
+            ParameterExpression comp = expression as ParameterExpression;
+            if (comp == null)
+            {
+                return false;
+            }
+            return (comp.Name.Equals(par.Name) && comp.Type.Equals(par.Type));
+
+        }
+
+		public IsExpressionResult IsExpressionInternal( Expression expression, int level, RequestFor requestFlag)
 		{
 			switch (requestFlag)
 			{
 				case RequestFor.SubQuery : return IsExpressionResult.False;
 				case RequestFor.Root     :
-					return new IsExpressionResult(Sequence.Length == 1 ?
-						ReferenceEquals(expression, Lambda.Parameters[0]) :
-						Lambda.Parameters.Any(p => ReferenceEquals(p, expression)));
+					return new IsExpressionResult(
+                        Sequence.Length == 1 ?
+                        RefNameEquals( expression, Lambda.Parameters[0]) :
+                        Lambda.Parameters.Any(p => RefNameEquals( expression, p))
+                        );
 			}
 
 			if (IsScalar)
