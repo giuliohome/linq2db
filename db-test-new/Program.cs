@@ -66,8 +66,8 @@ namespace db_test
                 var query =
                     from b in db.GetTable<T1>().Where(straight(2))
                 	from f in db.GetTable<T2>().Where(
-                		lambda(b)
-                		//lambdaExpr.Compile()(b)
+                		//lambda(b)
+                		lambdaExpr.Compile()(b)
                 	) //  q => q.id == b.id
 					select new Tuple<T1,T2> (b,f);
 

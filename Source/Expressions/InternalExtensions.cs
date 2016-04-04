@@ -730,28 +730,29 @@ namespace LinqToDB.Expressions
                 case ExpressionType.Invoke:
                     {
                         var inv = (InvocationExpression)ex;
-//                        var excall =(MethodCallExpression)inv.Expression;
-//                        var call = excall;
-//                        
-//                        
-//                        var unwrapped = (MethodCallExpression)call.Unwrap();
-//                        var reflectedLambda = unwrapped.Object;
-//                        
-//                        var memberExpr = reflectedLambda as MemberExpression;
-//                        var mylambda = memberExpr.Expression;
-//                        ConstantExpression thelambda = mylambda as ConstantExpression;
-//                        var val = thelambda.Value;
-//                        
-//                        var ret_type = val.GetType();
-//                        var ret = ret_type.GetFields()[0];
-//                        //var ret = ret_type.GetField("lambdaExpr");
-//                        var ret_val = ret.GetValue(val);
-//                        var original_lambda = ret_val as LambdaExpression;
-//                        var body = original_lambda.Body as LambdaExpression;
-//                        ParameterExpression pf0 = body.Parameters[0];
-//                        var final_lambda = Expression.Lambda(body, pf0); //, pf);
-//                        
-//                        return final_lambda;
+                        var excall =(MethodCallExpression)inv.Expression;
+                        var call = excall;
+                        
+                        
+                        var unwrapped = (MethodCallExpression)call.Unwrap();
+                        var reflectedLambda = unwrapped.Object;
+                        
+                        var memberExpr = reflectedLambda as MemberExpression;
+                        var mylambda = memberExpr.Expression;
+                        ConstantExpression thelambda = mylambda as ConstantExpression;
+                        var val = thelambda.Value;
+                        
+                        var ret_type = val.GetType();
+                        var ret = ret_type.GetFields()[0];
+                        //var ret = ret_type.GetField("lambdaExpr");
+                        var ret_val = ret.GetValue(val);
+                        var original_lambda = ret_val as LambdaExpression;
+                        return original_lambda;
+                        var body = original_lambda.Body as LambdaExpression;
+                        ParameterExpression pf0 = body.Parameters[0];
+                        var final_lambda = Expression.Lambda(body, pf0); //, pf);
+                        
+                        return final_lambda;
                         
                         var mexp = ((MemberExpression)inv.Expression);
                     var l = (ConstantExpression)mexp.Expression;
@@ -767,7 +768,7 @@ namespace LinqToDB.Expressions
                      var mm_lambda = (mm as MemberExpression).Expression;
                      var mm_types = (mm_lambda as ConstantExpression).Type.GenericTypeArguments;
 
-                        var ret_not_work=  Expression.Lambda<Func<object>>(mexp);
+                        //var ret_not_work=  Expression.Lambda<Func<object>>(mexp);
                     //var argp = (ParameterExpression)((InvocationExpression)ex).Arguments[0];
 
                     //return Expression.Lambda<Func<Expression>>((Expression)bf.Target,argp);
@@ -778,7 +779,22 @@ namespace LinqToDB.Expressions
                      var pb = Expression.Parameter(T1, "b");
                      PropertyInfo FooId = T2.GetProperty("id");
                      PropertyInfo BarId = T1.GetProperty("id");
+                     
                      var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(argp, BarId));
+                     //try this now  --- no no   I need Expressions no, no Funcs 
+//                    http://stackoverflow.com/questions/36399600/lambdas-in-linq-ast-why-different-behaviour
+//							ConstantExpression thelambda = mm_lambda as ConstantExpression;
+//							var val = thelambda.Value;
+//							
+//							var ret_type = val.GetType();
+//							var ret = ret_type.GetFields()[0];
+//							//var ret = ret_type.GetField("lambdaExpr");
+//							var ret_val = ret.GetValue(val);
+//                        var original_lambda = ret_val as LambdaExpression;
+//                        var eqexpr = original_lambda.Body as LambdaExpression;
+//                        //ParameterExpression pf0 = body.Parameters[0];
+//                        //var final_lambda = Expression.Lambda(body, pf0); //, pf);
+                     
                      var lambdaInt = Expression.Lambda(eqexpr, pf); //<Func<db_test.Foo, bool>>
                      //var lambdaExpr = Expression.Lambda(lambdaInt, pb); //<Func<db_test.Bar, Func<db_test.Foo, bool>>>
 
