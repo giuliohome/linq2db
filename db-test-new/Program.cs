@@ -49,27 +49,18 @@ namespace db_test
 }
 	
 	static class Test {
-        static internal void Join<T1, T2>(Func<T1, Expression<Func<T2, bool>>> lambda
-		                                 // , Func<int,Expression<Func<T1, bool>>> straight
-		                                 ) // 
+        static internal void Join<T1, T2>(Expression<Func<T1,Func<T2, bool>>> joinCond) 
 			where T2: class
             where T1 : class
 		{
-            var pf = Expression.Parameter(typeof(T2),"f");
-            var pb = Expression.Parameter(typeof(T1), "b");
-            PropertyInfo FooId = typeof(T2).GetProperty("id");
-            PropertyInfo BarId = typeof(T1).GetProperty("id");
-            var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
-            var lambdaInt = Expression.Lambda<Func<T2, bool>>(eqexpr, pf);
-            var lambdaExpr = Expression.Lambda<Func<T1,Func<T2, bool>>>( lambdaInt,pb);
-			
+
 
             using (var db = new MyContext()) {
                 var query =
                     from b in db.GetTable<T1>() //.Where(straight(2))
                 	from f in db.GetTable<T2>().Where(
                 		//lambda(b)
-                		lambdaExpr.Compile()(b)
+                		joinCond.Compile()(b)
                 		//q => q.id == b.id
                 	) 
 					select new Tuple<T1,T2> (b,f);
@@ -97,12 +88,17 @@ namespace db_test
 		{
 			Console.WriteLine("Hello World!");
 			
-			// TODO: Implement Functionality Here
+            var pf = Expression.Parameter(typeof(Foo),"f");
+            var pb = Expression.Parameter(typeof(Bar), "b");
+            PropertyInfo FooId = typeof(Foo).GetProperty("id");
+            PropertyInfo BarId = typeof(Bar).GetProperty("id");
+            var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
+            var lambdaInt = Expression.Lambda<Func<Foo, bool>>(eqexpr, pf);
+            var lambdaExpr = Expression.Lambda<Func<Bar,Func<Foo, bool>>>( lambdaInt,pb);
 			
 			
-			Test.Join<Bar, Foo>( k => (q => q.id == k.id)
-			                   // , q => (a => a.id == q)
-			                   );
+			
+			Test.Join<Bar, Foo>(lambdaExpr);
 
 			
 			
