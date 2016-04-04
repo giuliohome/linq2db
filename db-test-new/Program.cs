@@ -88,20 +88,8 @@ namespace db_test
 		{
 			Console.WriteLine("Hello World!");
 			
-            var pf = Expression.Parameter(typeof(Foo),"f");
-            var pb = Expression.Parameter(typeof(Bar), "b");
-            PropertyInfo FooId = typeof(Foo).GetProperty("id");
-            PropertyInfo BarId = typeof(Bar).GetProperty("id");
-            var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
-            var lambdaInt = Expression.Lambda<Func<Foo, bool>>(eqexpr, pf);
-            var lambdaExpr = Expression.Lambda<Func<Bar,Func<Foo, bool>>>( lambdaInt,pb);
 			
-			
-			
-			Test.Join<Bar, Foo>(lambdaExpr);
-
-			
-			
+			Test.Join<Bar, Foo>(b => q => q.id == b.id);
 			
 			Console.Write("Press any key to continue . . . ");
 			Console.ReadKey(true);
