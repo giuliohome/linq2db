@@ -1294,6 +1294,14 @@ namespace LinqToDB.Linq.Builder
 		{
 			switch (expression.NodeType)
 			{
+				case ExpressionType.Lambda			   :
+					{
+						var lambda = (LambdaExpression)expression;
+						var e = (BinaryExpression)lambda.Body;
+						expression = (BinaryExpression)lambda.Body;
+						//throw new Exception("FIX this : look at plain quoted case");
+						return ConvertCompare(context, lambda.Body.NodeType, e.Left, e.Right);
+					}
 				case ExpressionType.Equal              :
 				case ExpressionType.NotEqual           :
 				case ExpressionType.GreaterThan        :

@@ -50,8 +50,8 @@ namespace db_test
 	
 	static class Test {
         static internal void This<T1, T2>(Func<T1, Expression<Func<T2, bool>>> lambda, Func<int,Expression<Func<T1, bool>>> straight) // 
-			where T2: class
-            where T1 : class
+			where T2: Foo//class
+            where T1 : Bar//class
 		{
             var pf = Expression.Parameter(typeof(T2),"f");
             var pb = Expression.Parameter(typeof(T1), "b");
@@ -68,7 +68,8 @@ namespace db_test
                 	from f in db.GetTable<T2>().Where(
                 		//lambda(b)
                 		lambdaExpr.Compile()(b)
-                	) //  q => q.id == b.id
+                		//q => q.id == b.id
+                	) 
 					select new Tuple<T1,T2> (b,f);
 
              var debug_me = query.Expression;

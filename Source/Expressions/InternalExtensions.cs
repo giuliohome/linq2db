@@ -747,10 +747,27 @@ namespace LinqToDB.Expressions
                         //var ret = ret_type.GetField("lambdaExpr");
                         var ret_val = ret.GetValue(val);
                         var original_lambda = ret_val as LambdaExpression;
-                        return original_lambda;
+                        
                         var body = original_lambda.Body as LambdaExpression;
-                        ParameterExpression pf0 = body.Parameters[0];
-                        var final_lambda = Expression.Lambda(body, pf0); //, pf);
+                        var pf0 = (ParameterExpression)inv.Arguments[0];
+                         
+                        BinaryExpression equalB = body.Body as BinaryExpression;
+                        var myL = equalB.Left as MemberExpression;
+                        var myR = equalB.Right as MemberExpression;
+
+                        string Barfield = myR.Member.Name;
+                        
+//			var pf = Expression.Parameter(typeof(T2),"f");
+//            var pb = Expression.Parameter(typeof(T1), "b");
+//            PropertyInfo FooId = typeof(T2).GetProperty("id");
+            PropertyInfo newBarId = pf0.Type.GetProperty(Barfield);
+//            var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
+
+						var lambdaIntEq = Expression.Lambda( Expression.Equal(myL, Expression.Property(pf0, newBarId) ) , pf0);
+                        
+
+						
+                        var final_lambda = Expression.Lambda(lambdaIntEq, myL.Expression as ParameterExpression); //, pf);
                         
                         return final_lambda;
                         
