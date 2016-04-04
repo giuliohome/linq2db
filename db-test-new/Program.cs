@@ -49,9 +49,11 @@ namespace db_test
 }
 	
 	static class Test {
-        static internal void This<T1, T2>(Func<T1, Expression<Func<T2, bool>>> lambda, Func<int,Expression<Func<T1, bool>>> straight) // 
-			where T2: Foo//class
-            where T1 : Bar//class
+        static internal void Join<T1, T2>(Func<T1, Expression<Func<T2, bool>>> lambda
+		                                 // , Func<int,Expression<Func<T1, bool>>> straight
+		                                 ) // 
+			where T2: class
+            where T1 : class
 		{
             var pf = Expression.Parameter(typeof(T2),"f");
             var pb = Expression.Parameter(typeof(T1), "b");
@@ -64,7 +66,7 @@ namespace db_test
 
             using (var db = new MyContext()) {
                 var query =
-                    from b in db.GetTable<T1>().Where(straight(2))
+                    from b in db.GetTable<T1>() //.Where(straight(2))
                 	from f in db.GetTable<T2>().Where(
                 		//lambda(b)
                 		lambdaExpr.Compile()(b)
@@ -98,7 +100,9 @@ namespace db_test
 			// TODO: Implement Functionality Here
 			
 			
-			Test.This<Bar, Foo>( k => (q => q.id == k.id), q => (a => a.id == q));
+			Test.Join<Bar, Foo>( k => (q => q.id == k.id)
+			                   // , q => (a => a.id == q)
+			                   );
 
 			
 			
