@@ -730,7 +730,30 @@ namespace LinqToDB.Expressions
                 case ExpressionType.Invoke:
                     {
                         var inv = (InvocationExpression)ex;
-                    var mexp = ((MemberExpression)inv.Expression);
+//                        var excall =(MethodCallExpression)inv.Expression;
+//                        var call = excall;
+//                        
+//                        
+//                        var unwrapped = (MethodCallExpression)call.Unwrap();
+//                        var reflectedLambda = unwrapped.Object;
+//                        
+//                        var memberExpr = reflectedLambda as MemberExpression;
+//                        var mylambda = memberExpr.Expression;
+//                        ConstantExpression thelambda = mylambda as ConstantExpression;
+//                        var val = thelambda.Value;
+//                        
+//                        var ret_type = val.GetType();
+//                        var ret = ret_type.GetFields()[0];
+//                        //var ret = ret_type.GetField("lambdaExpr");
+//                        var ret_val = ret.GetValue(val);
+//                        var original_lambda = ret_val as LambdaExpression;
+//                        var body = original_lambda.Body as LambdaExpression;
+//                        ParameterExpression pf0 = body.Parameters[0];
+//                        var final_lambda = Expression.Lambda(body, pf0); //, pf);
+//                        
+//                        return final_lambda;
+                        
+                        var mexp = ((MemberExpression)inv.Expression);
                     var l = (ConstantExpression)mexp.Expression;
                     var argp = (ParameterExpression)inv.Arguments[0];
                     
@@ -738,7 +761,7 @@ namespace LinqToDB.Expressions
 
                  
                      var my_lambda = fe.GetType();
-                     var funcl = my_lambda.GetField("lambda");
+                     var funcl = my_lambda.GetFields()[0]; //GetField("lambda");
                      var funcl_v = funcl.GetValue(fe);
                      var mm = inv.Expression.GetMembers()[1];
                      var mm_lambda = (mm as MemberExpression).Expression;

@@ -6,7 +6,6 @@ using LinqToDB.Data;
 
 using NUnit.Framework;
 
-using Tests.FSharp.Models;
 
 namespace Tests.Linq
 {
@@ -103,19 +102,19 @@ namespace Tests.Linq
 			}
 		}
 
-		[Test, DataContextSource(false)]
-		public void ExposeSqlStringParameter(string context)
-		{
-			using (var db = new DataConnection(context))
-			{
-				var p   = "abc";
-				var sql = db.GetTable<Person>().Where(t => t.FirstName == p).ToString();
-
-				Console.WriteLine(sql);
-
-				Assert.That(sql, Contains.Substring("(3)"));
-			}
-		}
+//		[Test, DataContextSource(false)]
+//		public void ExposeSqlStringParameter(string context)
+//		{
+//			using (var db = new DataConnection(context))
+//			{
+//				var p   = "abc";
+//				var sql = db.GetTable<Person>().Where(t => t.FirstName == p).ToString();
+//
+//				Console.WriteLine(sql);
+//
+//				Assert.That(sql, Contains.Substring("(3)"));
+//			}
+//		}
 
 		class AllTypes
 		{

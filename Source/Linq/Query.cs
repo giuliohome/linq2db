@@ -151,9 +151,10 @@ namespace LinqToDB.Linq
 						{
 							query = new ExpressionBuilder(new Query<T>(), dataContextInfo, expr, null).Build<T>();
 						}
-                        catch (Exception)
+                        catch (Exception exc)
                         {
-                            if (!Configuration.Linq.GenerateExpressionTest)
+                        	System.Diagnostics.Debug.WriteLine(exc.ToString());
+                        	if (!Configuration.Linq.GenerateExpressionTest)
                             {
 #if !SILVERLIGHT && !NETFX_CORE
                                 DataConnection.WriteTraceLine(
