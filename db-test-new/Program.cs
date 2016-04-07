@@ -304,41 +304,68 @@ namespace db_test
 			public T1 t1;
 			public T2 t2;
 		}
-		public class JoinCond {
-			public string T1Property;
-			public string T2Property;
+        public class JoinCond<T1, T2>
+        {
+            public JoinCond(Expression<Func<T1, object>> T1_Property, Expression<Func<T2, object>> T2_Property)
+            {
+                if (T1_Property.Body.NodeType.Equals(ExpressionType.Convert))
+                {
+                    T1Property = ((T1_Property.Body as
+                    UnaryExpression).Operand as MemberExpression).Member.Name;
+                }
+                else
+                {
+                    T1Property = (T1_Property.Body as
+                        MemberExpression).Member.Name;
+                }
+                if (T2_Property.Body.NodeType.Equals(ExpressionType.Convert))
+                {
+                    T2Property = ((T2_Property.Body as
+                    UnaryExpression).Operand as MemberExpression).Member.Name;
+                }
+                else
+                {
+                    T2Property = (T2_Property.Body as
+                        MemberExpression).Member.Name;
+                }
+            }
+            public string T1Property;
+            public string T2Property;
 		}
 		public static IQueryable<JoinClass<T1,T2>> MultiJoin<T1,T2> (
-			JoinCond[] joinConds
+			JoinCond<T1,T2>[] joinConds
 		)
 			where T2: class
 			where T1 : class			
 		{
-			var jfb = Expression.Parameter(typeof(JoinClass<T1,T2>),"jfb");
-			
-			FieldInfo ItemT1 = typeof(JoinClass<T1,T2>).GetField("t1");
-			FieldInfo ItemT2 = typeof(JoinClass<T1,T2>).GetField("t2");
-			
-			var pb = Expression.Field(jfb, ItemT1);//
-			var pf = Expression.Field(jfb, ItemT2);//
-			
-			PropertyInfo[] T1Props = new PropertyInfo[joinConds.Length];
-			PropertyInfo[] T2Props = new PropertyInfo[joinConds.Length];
-			BinaryExpression[] OnJoinEqs = new BinaryExpression[joinConds.Length];
-			
-			
-			for (int i = 0; i < joinConds.Length; i++) {
-				T1Props[i] = typeof(T1).GetProperty(joinConds[i].T1Property);
-				T2Props[i] = typeof(T2).GetProperty(joinConds[i].T2Property);
-				OnJoinEqs[i] = Expression.Equal(Expression.Property(pb, T1Props[i] ), Expression.Property(pf, T2Props[i]));
-			}
-			
-			Expression JoinedAND = OnJoinEqs[0];
-			if (joinConds.Length>1) {
-				for (int i = 1; i < joinConds.Length; i++) {
-					JoinedAND = Expression.AndAlso(JoinedAND, OnJoinEqs[i]);
-				}
-			}
+            var jfb = Expression.Parameter(typeof(JoinClass<T1, T2>), "jfb");
+
+            FieldInfo ItemT1 = typeof(JoinClass<T1, T2>).GetField("t1");
+            FieldInfo ItemT2 = typeof(JoinClass<T1, T2>).GetField("t2");
+
+            var pb = Expression.Field(jfb, ItemT1);//
+            var pf = Expression.Field(jfb, ItemT2);//
+
+            PropertyInfo[] T1Props = new PropertyInfo[joinConds.Length];
+            PropertyInfo[] T2Props = new PropertyInfo[joinConds.Length];
+            BinaryExpression[] OnJoinEqs = new BinaryExpression[joinConds.Length];
+
+
+            for (int i = 0; i < joinConds.Length; i++)
+            {
+                T1Props[i] = typeof(T1).GetProperty(joinConds[i].T1Property);
+                T2Props[i] = typeof(T2).GetProperty(joinConds[i].T2Property);
+                OnJoinEqs[i] = Expression.Equal(Expression.Property(pb, T1Props[i]), Expression.Property(pf, T2Props[i]));
+            }
+
+            Expression JoinedAND = OnJoinEqs[0];
+            if (joinConds.Length > 1)
+            {
+                for (int i = 1; i < joinConds.Length; i++)
+                {
+                    JoinedAND = Expression.AndAlso(JoinedAND, OnJoinEqs[i]);
+                }
+            }
 			
 			
 			var WhereExpr = Expression.Lambda<Func<JoinClass<T1,T2>,bool>>(JoinedAND, jfb);
@@ -363,28 +390,29 @@ namespace db_test
 		public static void Main(string[] args)
 		{
 			Console.WriteLine("Hello World!");
-			JoinCond[] conds1 = new JoinCond[1];
-			
+            
 			
 			Console.WriteLine("by Col string");
-			conds1[0] = new JoinCond() { T1Property = "ColBar", T2Property="ColFoo" };
+            JoinCond<Bar, Foo>[] conds1 = new JoinCond<Bar, Foo>[1];
+            conds1[0] = new JoinCond<Bar, Foo>(b => b.ColBar, f => f.ColFoo);
 			var queryJoinByCol = MultiJoin<Bar,Foo>(conds1);  
 				//Test.NewJoin<Bar, Foo, string, Tuple<Bar,Foo>>(q => q.ColFoo, b => b.ColBar, (f, b) => new Tuple<Bar,Foo>(b,f));
 			ConsoleOut(queryJoinByCol);
 			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Id int");
-			conds1[0] = new JoinCond() { T1Property = "id", T2Property="id" };
+            conds1 = new JoinCond<Bar, Foo>[1];
+            conds1[0] = new JoinCond<Bar, Foo>(b => b.id, f => f.id);
 			var queryJoinById =  MultiJoin<Bar,Foo>(conds1); 
 				//Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
 			ConsoleOut(queryJoinById);
 			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Col string AND Id int");
-			
-			JoinCond[] conds2 = new JoinCond[2];
-			conds2[0] = new JoinCond() { T1Property = "id", T2Property="id" };
-			conds2[1] = new JoinCond() { T1Property = "ColBar", T2Property="ColFoo" };
+
+            JoinCond<Bar, Foo>[] conds2 = new JoinCond<Bar, Foo>[2];
+            conds2[0] = new JoinCond<Bar, Foo>(b => b.id, f => f.id);
+            conds2[1] = new JoinCond<Bar, Foo>(b => b.ColBar, f => f.ColFoo);
 			var w = MultiJoin<Bar,Foo>(conds2);
 			
 			ConsoleOut(w); //.Select(j => new Tuple<Bar,Foo>(j.t1,j.t2))
