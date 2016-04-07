@@ -237,10 +237,10 @@ namespace db_test
 
 			using (var db = new MyContext()) {
 
-				var query = (from b in db.GetTable<T2>() select b).InnerJoin <T2,T1, TKey, TResult>((from f in db.GetTable<T1>() select f), outer, inner, resultSelector).AsEnumerable();
+				var query = (from b in db.GetTable<T2>() select b).InnerJoin <T2,T1, TKey, TResult>((from f in db.GetTable<T1>() select f), outer, inner, resultSelector);//.AsEnumerable();
 	
 				#region only for debugging purposes - to be deleted
-				Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
+				//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
 				#endregion
 				
 				return query;
@@ -288,12 +288,12 @@ namespace db_test
 	{
 
 		
-		private static void ConsoleOut(IEnumerable<Tuple<Bar,Foo>> queryList) {
+		private static void ConsoleOut(IEnumerable<JoinClass<Bar,Foo>> queryList) {
 			if (queryList != null && queryList.Count()>0) {
 				foreach (var telement in queryList)
 				{
-					var bar = telement.Item1;
-					var foo = telement.Item2;
+					var bar = telement.t1;
+					var foo = telement.t2;
 					Console.WriteLine(foo.id.ToString() + " " + foo.FromDate.ToShortDateString() +" "+ " " + foo.ColFoo + " <==> "
 					                  +bar.id.ToString() + " " + bar.Name + " " + bar.ColBar
 					                 );
@@ -351,8 +351,8 @@ namespace db_test
 				var w = q.Where(WhereExpr);
 				
 				#region only for debugging purposes - to be deleted
-				w.ToArray();
-				Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
+				//w.ToArray();
+				//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
 				#endregion
 				
 				return w;
@@ -363,26 +363,31 @@ namespace db_test
 		public static void Main(string[] args)
 		{
 			Console.WriteLine("Hello World!");
+			JoinCond[] conds1 = new JoinCond[1];
 			
 			
 			Console.WriteLine("by Col string");
-			var queryJoinByCol =  Test.NewJoin<Bar, Foo, string, Tuple<Bar,Foo>>(q => q.ColFoo, b => b.ColBar, (f, b) => new Tuple<Bar,Foo>(b,f));
+			conds1[0] = new JoinCond() { T1Property = "ColBar", T2Property="ColFoo" };
+			var queryJoinByCol = MultiJoin<Bar,Foo>(conds1);  
+				//Test.NewJoin<Bar, Foo, string, Tuple<Bar,Foo>>(q => q.ColFoo, b => b.ColBar, (f, b) => new Tuple<Bar,Foo>(b,f));
 			ConsoleOut(queryJoinByCol);
 			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Id int");
-			var queryJoinById =  Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
+			conds1[0] = new JoinCond() { T1Property = "id", T2Property="id" };
+			var queryJoinById =  MultiJoin<Bar,Foo>(conds1); 
+				//Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
 			ConsoleOut(queryJoinById);
 			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Col string AND Id int");
 			
-			JoinCond[] conds = new JoinCond[2];
-			conds[0] = new JoinCond() { T1Property = "id", T2Property="id" };
-			conds[1] = new JoinCond() { T1Property = "ColBar", T2Property="ColFoo" };
-			var w = MultiJoin<Bar,Foo>(conds);
+			JoinCond[] conds2 = new JoinCond[2];
+			conds2[0] = new JoinCond() { T1Property = "id", T2Property="id" };
+			conds2[1] = new JoinCond() { T1Property = "ColBar", T2Property="ColFoo" };
+			var w = MultiJoin<Bar,Foo>(conds2);
 			
-			ConsoleOut(w.Select(j => new Tuple<Bar,Foo>(j.t1,j.t2)));
+			ConsoleOut(w); //.Select(j => new Tuple<Bar,Foo>(j.t1,j.t2))
 			
 			Console.Write("Press any key to continue . . . ");
 			Console.ReadKey(true);
