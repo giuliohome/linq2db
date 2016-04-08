@@ -228,7 +228,7 @@ namespace db_test
 		#endregion
 
 		
-		static internal IEnumerable<TResult> 
+		static internal IEnumerable<TResult>
 			NewJoin<T1, T2, TKey, TResult>
 			(Expression<Func<T2, TKey>> outer, Expression<Func<T1, TKey>> inner, Expression<Func<T2,T1,TResult>> resultSelector)
 			where T2: class
@@ -238,7 +238,7 @@ namespace db_test
 			using (var db = new MyContext()) {
 
 				var query = (from b in db.GetTable<T2>() select b).InnerJoin <T2,T1, TKey, TResult>((from f in db.GetTable<T1>() select f), outer, inner, resultSelector);//.AsEnumerable();
-	
+				
 				#region only for debugging purposes - to be deleted
 				//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
 				#endregion
@@ -304,68 +304,82 @@ namespace db_test
 			public T1 t1;
 			public T2 t2;
 		}
-        public class JoinCond<T1, T2>
-        {
-            public JoinCond(Expression<Func<T1, object>> T1_Property, Expression<Func<T2, object>> T2_Property)
-            {
-                if (T1_Property.Body.NodeType.Equals(ExpressionType.Convert))
-                {
-                    T1Property = ((T1_Property.Body as
-                    UnaryExpression).Operand as MemberExpression).Member.Name;
-                }
-                else
-                {
-                    T1Property = (T1_Property.Body as
-                        MemberExpression).Member.Name;
-                }
-                if (T2_Property.Body.NodeType.Equals(ExpressionType.Convert))
-                {
-                    T2Property = ((T2_Property.Body as
-                    UnaryExpression).Operand as MemberExpression).Member.Name;
-                }
-                else
-                {
-                    T2Property = (T2_Property.Body as
-                        MemberExpression).Member.Name;
-                }
-            }
-            public string T1Property;
-            public string T2Property;
+		public class JoinCond<T1,T2>
+		{
+			public JoinCond(Expression<Func<JoinClass<T1,T2>, bool>> JoinCond) {
+				myExpr = JoinCond;
+			}
+			#region equal expr
+//			public JoinCond(Expression<Func<T1, object>> T1_Property, Expression<Func<T2, object>> T2_Property)
+//			{
+//				if (T1_Property.Body.NodeType.Equals(ExpressionType.Convert))
+//				{
+//					T1Property = ((T1_Property.Body as
+//					               UnaryExpression).Operand as MemberExpression).Member.Name;
+//				}
+//				else
+//				{
+//					T1Property = (T1_Property.Body as
+//					              MemberExpression).Member.Name;
+//				}
+//				if (T2_Property.Body.NodeType.Equals(ExpressionType.Convert))
+//				{
+//					T2Property = ((T2_Property.Body as
+//					               UnaryExpression).Operand as MemberExpression).Member.Name;
+//				}
+//				else
+//				{
+//					T2Property = (T2_Property.Body as
+//					              MemberExpression).Member.Name;
+//				}
+//			}
+			#endregion
+			public string T1Property;
+			public string T2Property;
+			public Expression<Func<JoinClass<T1,T2>, bool>> myExpr = null;
 		}
 		public static IQueryable<JoinClass<T1,T2>> MultiJoin<T1,T2> (
 			JoinCond<T1,T2>[] joinConds
 		)
 			where T2: class
-			where T1 : class			
+			where T1 : class
 		{
-            var jfb = Expression.Parameter(typeof(JoinClass<T1, T2>), "jfb");
+			var jfb = Expression.Parameter(typeof(JoinClass<T1, T2>), "jfb");
 
-            FieldInfo ItemT1 = typeof(JoinClass<T1, T2>).GetField("t1");
-            FieldInfo ItemT2 = typeof(JoinClass<T1, T2>).GetField("t2");
+			FieldInfo ItemT1 = typeof(JoinClass<T1, T2>).GetField("t1");
+			FieldInfo ItemT2 = typeof(JoinClass<T1, T2>).GetField("t2");
 
-            var pb = Expression.Field(jfb, ItemT1);//
-            var pf = Expression.Field(jfb, ItemT2);//
+			var pb = Expression.Field(jfb, ItemT1);//
+			var pf = Expression.Field(jfb, ItemT2);//
 
-            PropertyInfo[] T1Props = new PropertyInfo[joinConds.Length];
-            PropertyInfo[] T2Props = new PropertyInfo[joinConds.Length];
-            BinaryExpression[] OnJoinEqs = new BinaryExpression[joinConds.Length];
+			PropertyInfo[] T1Props = new PropertyInfo[joinConds.Length];
+			PropertyInfo[] T2Props = new PropertyInfo[joinConds.Length];
+			Expression[] OnJoinEqs = new Expression[joinConds.Length];
 
 
-            for (int i = 0; i < joinConds.Length; i++)
-            {
-                T1Props[i] = typeof(T1).GetProperty(joinConds[i].T1Property);
-                T2Props[i] = typeof(T2).GetProperty(joinConds[i].T2Property);
-                OnJoinEqs[i] = Expression.Equal(Expression.Property(pb, T1Props[i]), Expression.Property(pf, T2Props[i]));
-            }
+			for (int i = 0; i < joinConds.Length; i++)
+			{
+				if (joinConds[i].myExpr != null) {
+					var old_expr = joinConds[i].myExpr;
+					var map = old_expr.Parameters.ToDictionary(p => p, p => jfb);
+					var reboundBody = ParameterRebinder.ReplaceParameters(map, old_expr.Body);
+					OnJoinEqs[i] = Expression.Lambda<Func<JoinClass<T1,T2>,bool>>(reboundBody, jfb).Body;
+				} else {
+					T1Props[i] = typeof(T1).GetProperty(joinConds[i].T1Property);
+					T2Props[i] = typeof(T2).GetProperty(joinConds[i].T2Property);
+					OnJoinEqs[i] = Expression.Equal(Expression.Property(pb, T1Props[i]), Expression.Property(pf, T2Props[i]));
+				}
+				
+			}
 
-            Expression JoinedAND = OnJoinEqs[0];
-            if (joinConds.Length > 1)
-            {
-                for (int i = 1; i < joinConds.Length; i++)
-                {
-                    JoinedAND = Expression.AndAlso(JoinedAND, OnJoinEqs[i]);
-                }
-            }
+			Expression JoinedAND = OnJoinEqs[0];
+			if (joinConds.Length > 1)
+			{
+				for (int i = 1; i < joinConds.Length; i++)
+				{
+					JoinedAND = Expression.AndAlso(JoinedAND, OnJoinEqs[i]);
+				}
+			}
 			
 			
 			var WhereExpr = Expression.Lambda<Func<JoinClass<T1,T2>,bool>>(JoinedAND, jfb);
@@ -373,13 +387,13 @@ namespace db_test
 			using (var db = new MyContext()) {
 				
 				var q = from b in db.GetTable<T1>()
-					from f in db.GetTable<T2>() 
+					from f in db.GetTable<T2>()
 					select new JoinClass<T1,T2>() { t1 = b ,t2=f} ;
 				var w = q.Where(WhereExpr);
 				
 				#region only for debugging purposes - to be deleted
-				//w.ToArray();
-				//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
+				w.ToArray();
+				Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
 				#endregion
 				
 				return w;
@@ -390,35 +404,101 @@ namespace db_test
 		public static void Main(string[] args)
 		{
 			Console.WriteLine("Hello World!");
-            
+			
 			
 			Console.WriteLine("by Col string");
-            JoinCond<Bar, Foo>[] conds1 = new JoinCond<Bar, Foo>[1];
-            conds1[0] = new JoinCond<Bar, Foo>(b => b.ColBar, f => f.ColFoo);
-			var queryJoinByCol = MultiJoin<Bar,Foo>(conds1);  
-				//Test.NewJoin<Bar, Foo, string, Tuple<Bar,Foo>>(q => q.ColFoo, b => b.ColBar, (f, b) => new Tuple<Bar,Foo>(b,f));
+			JoinCond<Bar, Foo>[] conds1 = new JoinCond<Bar, Foo>[1];
+			conds1[0] = new JoinCond<Bar, Foo>( j => j.t2.ColFoo.StartsWith(j.t1.ColBar) );
+			var queryJoinByCol = MultiJoin<Bar,Foo>(conds1);
+			//Test.NewJoin<Bar, Foo, string, Tuple<Bar,Foo>>(q => q.ColFoo, b => b.ColBar, (f, b) => new Tuple<Bar,Foo>(b,f));
 			ConsoleOut(queryJoinByCol);
 			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Id int");
-            conds1 = new JoinCond<Bar, Foo>[1];
-            conds1[0] = new JoinCond<Bar, Foo>(b => b.id, f => f.id);
-			var queryJoinById =  MultiJoin<Bar,Foo>(conds1); 
-				//Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
+			conds1 = new JoinCond<Bar, Foo>[1];
+			conds1[0] = new JoinCond<Bar, Foo>(j =>  j.t1.id == j.t2.id);
+			var queryJoinById =  MultiJoin<Bar,Foo>(conds1);
+			//Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
 			ConsoleOut(queryJoinById);
 			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Col string AND Id int");
 
-            JoinCond<Bar, Foo>[] conds2 = new JoinCond<Bar, Foo>[2];
-            conds2[0] = new JoinCond<Bar, Foo>(b => b.id, f => f.id);
-            conds2[1] = new JoinCond<Bar, Foo>(b => b.ColBar, f => f.ColFoo);
+			JoinCond<Bar, Foo>[] conds2 = new JoinCond<Bar, Foo>[2];
+			conds2[0] = new JoinCond<Bar, Foo>(j =>  j.t1.id == j.t2.id);
+			conds2[1] = new JoinCond<Bar, Foo>( j => j.t2.ColFoo.StartsWith(j.t1.ColBar) );
 			var w = MultiJoin<Bar,Foo>(conds2);
 			
 			ConsoleOut(w); //.Select(j => new Tuple<Bar,Foo>(j.t1,j.t2))
 			
+			#region SO try to generalize the Equal Expr into LambdaExpr in the generic JoinCond
+			//I have this expression
+			Expression<Func<Bar,bool>> old_expr = x => x.Name == x.ColBar;
+			//I want to change parameter from x to y
+			//I already have the y parameter in the code, let's say it is the followinf
+			ParameterExpression py = Expression.Parameter(typeof(Bar), "y");
+			//this is what I have tried, but it is *not* complete neither generic
+			Expression expr_to_do;
+			if (old_expr.Body.NodeType.Equals(ExpressionType.Convert)) {
+				UnaryExpression convEx = old_expr.Body as UnaryExpression;
+				expr_to_do = convEx.Operand;
+			} else {
+				expr_to_do  = old_expr.Body;
+			}
+			//TODO convert the BinarayExpression eqEx, etc... etc...
+			
+			if (expr_to_do.NodeType.Equals(ExpressionType.Equal)) {
+				// have I to manage each Expr Type case??
+				var eqExpr = expr_to_do as BinaryExpression;
+				var left = eqExpr.Left as MemberExpression;
+				//...
+				//var new_left = Expression.Property(...,py)
+			}
+			var newLambda = Expression.Lambda(expr_to_do, new ParameterExpression[1]{py});
+			
+			var map = old_expr.Parameters.ToDictionary(p => p, p => py);
+			var reboundBody = ParameterRebinder.ReplaceParameters(map, old_expr.Body);
+			var lambda = Expression.Lambda<Func<Bar,bool>>(reboundBody, py);
+			
+			//newLambda = Expression.Lambda(Expression.Call(
+			//	old_expr.Compile().Method, new Expression[] {Expression.Constant(new Bar()),Expression.Constant(new Bar())})
+			//                              ,new ParameterExpression[1]{py});
+			
+			//Again, what I want to get is the following where y *is* the parameter defined *above* 
+			Expression<Func<Bar,bool>> new_expr = y => y.Name == y.ColBar;
+			//The code/method I'm looking for - if it does exist a method to do that - must be generic enough not specific to this single expression
+			#endregion
+			
 			Console.Write("Press any key to continue . . . ");
 			Console.ReadKey(true);
 		}
+		
+		
+		public class ParameterRebinder : ExpressionVisitor
+		{
+			private readonly Dictionary<ParameterExpression, ParameterExpression> Map;
+
+			public ParameterRebinder(Dictionary<ParameterExpression, ParameterExpression> map)
+			{
+				this.Map = map ?? new Dictionary<ParameterExpression, ParameterExpression>();
+			}
+
+			public static Expression ReplaceParameters(Dictionary<ParameterExpression, ParameterExpression> map, Expression exp)
+			{
+				return new ParameterRebinder(map).Visit(exp);
+			}
+
+			protected override Expression VisitParameter(ParameterExpression node)
+			{
+				ParameterExpression replacement;
+				if (this.Map.TryGetValue(node, out replacement))
+				{
+					return replacement;
+					//return this.Visit(replacement);
+				}
+				return base.VisitParameter(node);
+			}
+		}
+		
 	}
 }
