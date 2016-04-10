@@ -115,75 +115,75 @@ namespace db_test
 	}
 	
 	
-	static class ExpressionTestExtensions
-	{
+	//static class ExpressionTestExtensions
+	//{
 		
-		#region with LeftJoinInfo
-		/*
-		[ExpressionMethod("LeftJoinImpl")]
- 		public class LeftJoinInfo<TOuter,TInner>
-		{
-			public TOuter Outer;
-			public TInner Inner;
-		}
+	//	#region with LeftJoinInfo
+	//	/*
+	//	[ExpressionMethod("LeftJoinImpl")]
+ //		public class LeftJoinInfo<TOuter,TInner>
+	//	{
+	//		public TOuter Outer;
+	//		public TInner Inner;
+	//	}
 
-		public static IQueryable<LeftJoinInfo<TOuter,TInner>> LeftJoin<TOuter, TInner, TKey>(
-			this IQueryable<TOuter> outer,
-			IEnumerable<TInner> inner,
-			Expression<Func<TOuter, TKey>> outerKeySelector,
-			Expression<Func<TInner, TKey>> innerKeySelector)
-		{
-			return outer
-				.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
-				.SelectMany(t => t.gr//.DefaultIfEmpty()
-				            , (o,i) => new LeftJoinInfo<TOuter,TInner> { Outer = o.o, Inner = i });
-		}
+	//	public static IQueryable<LeftJoinInfo<TOuter,TInner>> LeftJoin<TOuter, TInner, TKey>(
+	//		this IQueryable<TOuter> outer,
+	//		IEnumerable<TInner> inner,
+	//		Expression<Func<TOuter, TKey>> outerKeySelector,
+	//		Expression<Func<TInner, TKey>> innerKeySelector)
+	//	{
+	//		return outer
+	//			.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
+	//			.SelectMany(t => t.gr//.DefaultIfEmpty()
+	//			            , (o,i) => new LeftJoinInfo<TOuter,TInner> { Outer = o.o, Inner = i });
+	//	}
 
-		static Expression<Func<
-			IQueryable<TOuter>,
-			IEnumerable<TInner>,
-			Expression<Func<TOuter,TKey>>,
-			Expression<Func<TInner,TKey>>,
-			IQueryable<LeftJoinInfo<TOuter,TInner>>>>
-			LeftJoinImpl<TOuter, TInner, TKey>()
-		{
-			return (outer,inner,outerKeySelector,innerKeySelector) => outer
-				.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
-				.SelectMany(t => t.gr//.DefaultIfEmpty()
-				            , (o,i) => new LeftJoinInfo<TOuter,TInner> { Outer = o.o, Inner = i });
-		}*/
-		#endregion
+	//	static Expression<Func<
+	//		IQueryable<TOuter>,
+	//		IEnumerable<TInner>,
+	//		Expression<Func<TOuter,TKey>>,
+	//		Expression<Func<TInner,TKey>>,
+	//		IQueryable<LeftJoinInfo<TOuter,TInner>>>>
+	//		LeftJoinImpl<TOuter, TInner, TKey>()
+	//	{
+	//		return (outer,inner,outerKeySelector,innerKeySelector) => outer
+	//			.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
+	//			.SelectMany(t => t.gr//.DefaultIfEmpty()
+	//			            , (o,i) => new LeftJoinInfo<TOuter,TInner> { Outer = o.o, Inner = i });
+	//	}*/
+	//	#endregion
 
-		[ExpressionMethod("InnerJoinImpl")]
-		public static IEnumerable<TResult> InnerJoin<TOuter,TInner,TKey,TResult>(
-			this IQueryable<TOuter> outer,
-			IEnumerable<TInner> inner,
-			Expression<Func<TOuter,TKey>> outerKeySelector,
-			Expression<Func<TInner,TKey>> innerKeySelector,
-			Expression<Func<TOuter,TInner,TResult>> resultSelector)
-		{
-			return outer
-				.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
-				.SelectMany(t => t.gr//.DefaultIfEmpty()
-				            , (o,i) => resultSelector.Compile()(o.o,i));
-		}
-		static Expression<Func<
-			IQueryable<TOuter>,
-		IEnumerable<TInner>,
-		Expression<Func<TOuter,TKey>>,
-		Expression<Func<TInner,TKey>>,
-		Expression<Func<TOuter,TInner, TResult>>,
-		IQueryable<TResult>>>
-			LeftJoinImpl1<TOuter,TInner,TKey,TResult>()
-		{
-			return (outer,inner,outerKeySelector,innerKeySelector,resultSelector) => outer
-				.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
-				.SelectMany(t => t.gr//.DefaultIfEmpty()
-				            , (o,i) => resultSelector.Compile()(o.o,i));
-			//.Select<TResult>((o,i) => resultSelector.Compile()(o,i));
-		}
+	//	[ExpressionMethod("InnerJoinImpl")]
+	//	public static IEnumerable<TResult> InnerJoin<TOuter,TInner,TKey,TResult>(
+	//		this IQueryable<TOuter> outer,
+	//		IEnumerable<TInner> inner,
+	//		Expression<Func<TOuter,TKey>> outerKeySelector,
+	//		Expression<Func<TInner,TKey>> innerKeySelector,
+	//		Expression<Func<TOuter,TInner,TResult>> resultSelector)
+	//	{
+	//		return outer
+	//			.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
+	//			.SelectMany(t => t.gr//.DefaultIfEmpty()
+	//			            , (o,i) => resultSelector.Compile()(o.o,i));
+	//	}
+	//	static Expression<Func<
+	//		IQueryable<TOuter>,
+	//	IEnumerable<TInner>,
+	//	Expression<Func<TOuter,TKey>>,
+	//	Expression<Func<TInner,TKey>>,
+	//	Expression<Func<TOuter,TInner, TResult>>,
+	//	IQueryable<TResult>>>
+	//		LeftJoinImpl1<TOuter,TInner,TKey,TResult>()
+	//	{
+	//		return (outer,inner,outerKeySelector,innerKeySelector,resultSelector) => outer
+	//			.GroupJoin(inner, outerKeySelector, innerKeySelector, (o, gr) => new { o, gr })
+	//			.SelectMany(t => t.gr//.DefaultIfEmpty()
+	//			            , (o,i) => resultSelector.Compile()(o.o,i));
+	//		//.Select<TResult>((o,i) => resultSelector.Compile()(o,i));
+	//	}
 		
-	}
+	//}
 	
 	
 	static class Test {
@@ -228,25 +228,25 @@ namespace db_test
 		#endregion
 
 		
-		static internal IEnumerable<TResult>
-			NewJoin<T1, T2, TKey, TResult>
-			(Expression<Func<T2, TKey>> outer, Expression<Func<T1, TKey>> inner, Expression<Func<T2,T1,TResult>> resultSelector)
-			where T2: class
-			where T1 : class
-		{
+		//static internal IEnumerable<TResult>
+		//	NewJoin<T1, T2, TKey, TResult>
+		//	(Expression<Func<T2, TKey>> outer, Expression<Func<T1, TKey>> inner, Expression<Func<T2,T1,TResult>> resultSelector)
+		//	where T2: class
+		//	where T1 : class
+		//{
 
-			using (var db = new MyContext()) {
+		//	using (var db = new MyContext()) {
 
-				var query = (from b in db.GetTable<T2>() select b).InnerJoin <T2,T1, TKey, TResult>((from f in db.GetTable<T1>() select f), outer, inner, resultSelector);//.AsEnumerable();
+		//		var query = (from b in db.GetTable<T2>() select b).InnerJoin <T2,T1, TKey, TResult>((from f in db.GetTable<T1>() select f), outer, inner, resultSelector);//.AsEnumerable();
 				
-				#region only for debugging purposes - to be deleted
-				//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
-				#endregion
+		//		#region only for debugging purposes - to be deleted
+		//		//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
+		//		#endregion
 				
-				return query;
+		//		return query;
 
-			}
-		}
+		//	}
+		//}
 		
 		
 	}
@@ -304,43 +304,44 @@ namespace db_test
 			public T1 t1;
 			public T2 t2;
 		}
-		public class JoinCond<T1,T2>
-		{
-			public JoinCond(Expression<Func<JoinClass<T1,T2>, bool>> JoinCond) {
-				myExpr = JoinCond;
-			}
-			#region equal expr
-//			public JoinCond(Expression<Func<T1, object>> T1_Property, Expression<Func<T2, object>> T2_Property)
-//			{
-//				if (T1_Property.Body.NodeType.Equals(ExpressionType.Convert))
-//				{
-//					T1Property = ((T1_Property.Body as
-//					               UnaryExpression).Operand as MemberExpression).Member.Name;
-//				}
-//				else
-//				{
-//					T1Property = (T1_Property.Body as
-//					              MemberExpression).Member.Name;
-//				}
-//				if (T2_Property.Body.NodeType.Equals(ExpressionType.Convert))
-//				{
-//					T2Property = ((T2_Property.Body as
-//					               UnaryExpression).Operand as MemberExpression).Member.Name;
-//				}
-//				else
-//				{
-//					T2Property = (T2_Property.Body as
-//					              MemberExpression).Member.Name;
-//				}
+//		public class JoinCond<T1,T2>
+//		{
+//			public JoinCond(Expression<Func<JoinClass<T1,T2>, bool>> JoinCond) {
+//				myExpr = JoinCond;
 //			}
-			#endregion
-			public string T1Property;
-			public string T2Property;
-			public Expression<Func<JoinClass<T1,T2>, bool>> myExpr = null;
-		}
+//			#region equal expr
+////			public JoinCond(Expression<Func<T1, object>> T1_Property, Expression<Func<T2, object>> T2_Property)
+////			{
+////				if (T1_Property.Body.NodeType.Equals(ExpressionType.Convert))
+////				{
+////					T1Property = ((T1_Property.Body as
+////					               UnaryExpression).Operand as MemberExpression).Member.Name;
+////				}
+////				else
+////				{
+////					T1Property = (T1_Property.Body as
+////					              MemberExpression).Member.Name;
+////				}
+////				if (T2_Property.Body.NodeType.Equals(ExpressionType.Convert))
+////				{
+////					T2Property = ((T2_Property.Body as
+////					               UnaryExpression).Operand as MemberExpression).Member.Name;
+////				}
+////				else
+////				{
+////					T2Property = (T2_Property.Body as
+////					              MemberExpression).Member.Name;
+////				}
+////			}
+//			#endregion
+//			public string T1Property;
+//			public string T2Property;
+//			public Expression<Func<JoinClass<T1,T2>, bool>> myExpr = null;
+//		}
 		public static IQueryable<JoinClass<T1,T2>> MultiJoin<T1,T2> (
-			JoinCond<T1,T2>[] joinConds
-		)
+            MyContext db,
+            Expression<Func<JoinClass<T1, T2>, bool>> JoinCond
+        )
 			where T2: class
 			where T1 : class
 		{
@@ -352,88 +353,75 @@ namespace db_test
 			var pb = Expression.Field(jfb, ItemT1);//
 			var pf = Expression.Field(jfb, ItemT2);//
 
-			PropertyInfo[] T1Props = new PropertyInfo[joinConds.Length];
-			PropertyInfo[] T2Props = new PropertyInfo[joinConds.Length];
-			Expression[] OnJoinEqs = new Expression[joinConds.Length];
+            var old_expr = JoinCond;
+            var map = old_expr.Parameters.ToDictionary(p => p, p => jfb);
+            var reboundBody = ParameterRebinder.ReplaceParameters(map, old_expr.Body);
+            var newCond = Expression.Lambda<Func<JoinClass<T1, T2>, bool>>(reboundBody, jfb).Body;
 
+            var WhereExpr = Expression.Lambda<Func<JoinClass<T1,T2>,bool>>(newCond, jfb);
+			
+			//using (var db = new MyContext()) {
 
-			for (int i = 0; i < joinConds.Length; i++)
-			{
-				if (joinConds[i].myExpr != null) {
-					var old_expr = joinConds[i].myExpr;
-					var map = old_expr.Parameters.ToDictionary(p => p, p => jfb);
-					var reboundBody = ParameterRebinder.ReplaceParameters(map, old_expr.Body);
-					OnJoinEqs[i] = Expression.Lambda<Func<JoinClass<T1,T2>,bool>>(reboundBody, jfb).Body;
-				} else {
-					T1Props[i] = typeof(T1).GetProperty(joinConds[i].T1Property);
-					T2Props[i] = typeof(T2).GetProperty(joinConds[i].T2Property);
-					OnJoinEqs[i] = Expression.Equal(Expression.Property(pb, T1Props[i]), Expression.Property(pf, T2Props[i]));
-				}
-				
-			}
+                var qx = db.GetTable<T1>()
+                        .SelectMany(
+                        b => db.GetTable<T2>()
+                            , (b,f) => new JoinClass<T1, T2>() { t1 = b, t2 = f });
 
-			Expression JoinedAND = OnJoinEqs[0];
-			if (joinConds.Length > 1)
-			{
-				for (int i = 1; i < joinConds.Length; i++)
-				{
-					JoinedAND = Expression.AndAlso(JoinedAND, OnJoinEqs[i]);
-				}
-			}
-			
-			
-			var WhereExpr = Expression.Lambda<Func<JoinClass<T1,T2>,bool>>(JoinedAND, jfb);
-			
-			using (var db = new MyContext()) {
-				
-				var q = from b in db.GetTable<T1>()
-					from f in db.GetTable<T2>()
-					select new JoinClass<T1,T2>() { t1 = b ,t2=f} ;
-				var w = q.Where(WhereExpr);
+                //Translated Above from Query (or Query Expression) to Method Chaining (or Fluent)
+                //var qxExe = qx.ToArray();
+                //Console.WriteLine(String.Format("Last QX: {0}", db.LastQuery));
+
+                //var q = from b in db.GetTable<T1>()
+                //        from f in db.GetTable<T2>()
+                //        select new JoinClass<T1, T2>() { t1 = b, t2 = f };
+
+                var w = qx.Where(WhereExpr);
 				
 				#region only for debugging purposes - to be deleted
-				w.ToArray();
-				Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
+				//w.ToArray();
+				//Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
 				#endregion
 				
 				return w;
-			}
+			//}
 		}
 		
 		
 		public static void Main(string[] args)
 		{
 			Console.WriteLine("Hello World!");
-			
-			
-			Console.WriteLine("by Col string");
-			JoinCond<Bar, Foo>[] conds1 = new JoinCond<Bar, Foo>[1];
-			conds1[0] = new JoinCond<Bar, Foo>( j => j.t2.ColFoo.StartsWith(j.t1.ColBar) );
-			var queryJoinByCol = MultiJoin<Bar,Foo>(conds1);
+
+
+            
+            Console.WriteLine("by Id int");
+            
+            using(var db = new MyContext()) { 
+
+            var queryJoinById = MultiJoin<Bar, Foo>(db, j => j.t1.id == j.t2.id);
+            //Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
+            Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+            ConsoleOut(queryJoinById);
+            Console.WriteLine("-------------");
+
+            Console.WriteLine("by Col string");
+			var queryJoinByCol = MultiJoin<Bar,Foo>(db, j => j.t2.ColFoo.StartsWith(j.t1.ColBar));
 			//Test.NewJoin<Bar, Foo, string, Tuple<Bar,Foo>>(q => q.ColFoo, b => b.ColBar, (f, b) => new Tuple<Bar,Foo>(b,f));
-			ConsoleOut(queryJoinByCol);
+			Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+            ConsoleOut(queryJoinByCol);
 			Console.WriteLine("-------------");
 			
-			Console.WriteLine("by Id int");
-			conds1 = new JoinCond<Bar, Foo>[1];
-			conds1[0] = new JoinCond<Bar, Foo>(j =>  j.t1.id == j.t2.id);
-			var queryJoinById =  MultiJoin<Bar,Foo>(conds1);
-			//Test.NewJoin<Bar, Foo, int, Tuple<Bar,Foo>>(q => q.id, b => b.id, (f, b) => new Tuple<Bar,Foo>(b,f));
-			ConsoleOut(queryJoinById);
-			Console.WriteLine("-------------");
 			
 			Console.WriteLine("by Col string AND Id int");
 
-			JoinCond<Bar, Foo>[] conds2 = new JoinCond<Bar, Foo>[2];
-			conds2[0] = new JoinCond<Bar, Foo>(j =>  j.t1.id == j.t2.id);
-			conds2[1] = new JoinCond<Bar, Foo>( j => j.t2.ColFoo.StartsWith(j.t1.ColBar) );
-			var w = MultiJoin<Bar,Foo>(conds2);
-			
-			ConsoleOut(w); //.Select(j => new Tuple<Bar,Foo>(j.t1,j.t2))
-			
-			#region SO try to generalize the Equal Expr into LambdaExpr in the generic JoinCond
-			//I have this expression
-			Expression<Func<Bar,bool>> old_expr = x => x.Name == x.ColBar;
+			var w = MultiJoin<Bar,Foo>(db, 
+                j => j.t2.ColFoo.StartsWith(j.t1.ColBar) && j.t1.id == j.t2.id
+                );
+            Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+            ConsoleOut(w); //.Select(j => new Tuple<Bar,Foo>(j.t1,j.t2))
+            }
+            #region SO try to generalize the Equal Expr into LambdaExpr in the generic JoinCond
+            //I have this expression
+            Expression<Func<Bar,bool>> old_expr = x => x.Name == x.ColBar;
 			//I want to change parameter from x to y
 			//I already have the y parameter in the code, let's say it is the followinf
 			ParameterExpression py = Expression.Parameter(typeof(Bar), "y");
