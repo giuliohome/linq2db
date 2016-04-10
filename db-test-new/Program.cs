@@ -117,7 +117,17 @@ namespace db_test
 
     }
 
+    [Table(Name = "baz")]
+    public class Baz
+    {
+        [PrimaryKey, Column(Name = "id"), NotNull]
+        public int id { get; set; }
+        [PrimaryKey, Column(Name = "child_id"), NotNull]
+        public int idChild { get; set; }
+        [Column(Name = "gen"), NotNull]
+        public char Sex { get; set; }
 
+    }
 
     public class MyContext : LinqToDB.Data.DataConnection
 	{
@@ -402,6 +412,7 @@ namespace db_test
             public T2 t2;
             public T3 t3;
         }
+
         public static IQueryable<JoinClass<T1, T2, T3>> MultiJoin<T1, T2, T3>(
             MyContext db,
             Expression<Func<JoinClass<T1, T2, T3>, bool>> JoinCond
@@ -455,6 +466,119 @@ namespace db_test
             //}
         }
 
+        public class JoinClass<T1, T2, T3, T4>
+        {
+            public T1 t1;
+            public T2 t2;
+            public T3 t3;
+            public T4 t4;
+        }
+        public static IQueryable<JoinClass<T1, T2, T3, T4>> MultiJoin<T1, T2, T3, T4>(
+            MyContext db,
+            Expression<Func<JoinClass<T1, T2, T3, T4>, bool>> JoinCond
+        )
+            where T4 : class
+            where T3 : class
+            where T2 : class
+            where T1 : class
+        {
+            var jfb = Expression.Parameter(typeof(JoinClass<T1, T2, T3, T4>), "jfb");
+
+            FieldInfo ItemT1 = typeof(JoinClass<T1, T2, T3, T4>).GetField("t1");
+            FieldInfo ItemT2 = typeof(JoinClass<T1, T2, T3, T4>).GetField("t2");
+            FieldInfo ItemT3 = typeof(JoinClass<T1, T2, T3, T4>).GetField("t3");
+            FieldInfo ItemT4 = typeof(JoinClass<T1, T2, T3, T4>).GetField("t4");
+
+            var pb = Expression.Field(jfb, ItemT1);//
+            var pf = Expression.Field(jfb, ItemT2);//
+            var pq = Expression.Field(jfb, ItemT3);//
+            var pz = Expression.Field(jfb, ItemT4);//
+
+            var old_expr = JoinCond;
+            var map = old_expr.Parameters.ToDictionary(p => p, p => jfb);
+            var reboundBody = ParameterRebinder.ReplaceParameters(map, old_expr.Body);
+            var newCond = Expression.Lambda<Func<JoinClass<T1, T2, T3, T4>, bool>>(reboundBody, jfb).Body;
+
+            var WhereExpr = Expression.Lambda<Func<JoinClass<T1, T2, T3, T4>, bool>>(newCond, jfb);
+
+            //using (var db = new MyContext()) {
+
+            var qx = db.GetTable<T1>()
+                    .SelectMany(
+                    b => db.GetTable<T2>(), (b, f) => new JoinClass<T1, T2>() { t1 = b, t2 = f })
+                    .SelectMany(
+                    q => db.GetTable<T3>()
+                        , (j, q) => new JoinClass<T1, T2, T3>() { t1 = j.t1, t2 = j.t2, t3 = q })
+                    .SelectMany(
+                    z => db.GetTable<T4>()
+                        , (j, z) => new JoinClass<T1, T2, T3, T4>() { t1 = j.t1, t2 = j.t2, t3 = j.t3, t4 = z });
+
+
+            var w = qx.Where(WhereExpr);
+
+            #region only for debugging purposes - to be deleted
+            //w.ToArray();
+            //Console.WriteLine(String.Format("Last Query: {0}",db.LastQuery));
+            #endregion
+
+            return w;
+            //}
+        }
+
+        //public class UserClass2
+        //{
+        //    public Bar b;
+        //    public Foo f;
+        //}
+        //public class UserClass3
+        //{
+        //    public Bar b;
+        //    public Foo f;
+        //    public Qux q;
+        //}
+        //public static IQueryable<JoinClass<T1, T2, T3>> UserJoin<T, T1, T2, T3>(
+        //    MyContext db,
+        //    Expression<Func<JoinClass<T1, T2, T3>, bool>> JoinCond
+        //)
+        //    where T : class
+        //    where T3 : class
+        //    where T2 : class
+        //    where T1 : class
+        //{
+        //    var jfb = Expression.Parameter(typeof(T), "jfb");
+
+        //    FieldInfo[] ItemsT = typeof(T).GetFields();
+        //    MemberExpression[] pars = ItemsT.Select(item => Expression.Field(jfb, item)).ToArray();
+
+
+        //    var old_expr = JoinCond;
+        //    var map = old_expr.Parameters.ToDictionary(p => p, p => jfb);
+        //    var reboundBody = ParameterRebinder.ReplaceParameters(map, old_expr.Body);
+        //    var newCond = Expression.Lambda(reboundBody, jfb).Body;
+
+        //    var WhereExpr = Expression.Lambda<Func<JoinClass<T1, T2, T3>, bool>>(newCond, jfb);
+
+        //    Type[] types = ItemsT.Select(item => item.FieldType).ToArray();
+
+        //    MethodInfo method = typeof(LinqToDB.Data.DataConnection).GetMethods()[32];
+        //    MethodInfo[] generic = types.Select(t => method.MakeGenericMethod(t) ).ToArray();
+        //    object[] tables = generic.Select(g => g.Invoke(db, null)).ToArray();
+
+
+        //    var qx = ((IQueryable<T1>)tables[0])
+        //            .SelectMany(
+        //            b => db.GetTable<T2>(), (b, f) => new JoinClass<T1, T2>() { t1 = b, t2 = f })
+        //            .SelectMany(
+        //            q => db.GetTable<T3>()
+        //                , (j, q) => new JoinClass<T1, T2, T3>() { t1 = j.t1, t2 = j.t2, t3 = q });
+
+
+        //    return qx.Where(WhereExpr);
+
+        //}
+
+
+
         public static void Main(string[] args)
 		{
 			Console.WriteLine("Hello World!");
@@ -497,14 +621,19 @@ namespace db_test
                     );
                 Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
 
-                var complex = MultiJoin<Bar, Foo, Qux>(db,
-                    j => j.t2.ColFoo.StartsWith( j.t1.ColBar) && j.t2.id == j.t3.id && j.t3.Success
+                var complex = MultiJoin<Bar, Foo, Qux, Baz>(db,
+                    j => (j.t2.id == 0 || j.t2.ColFoo.StartsWith( j.t1.ColBar)) && j.t1.id == j.t3.id 
+                    && !j.t3.Success && j.t4.id == j.t1.id 
                     );
                 Console.WriteLine(String.Join(",",
-                        complex.Select(t => t.t1.Name + "@" + t.t2.FromDate.ToShortDateString())
+                        complex.Select(t => t.t1.Name + "@" + t.t2.FromDate.ToShortDateString() + "*" +t.t4.Sex)
                     )
                     );
                 Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+
+                //var super = UserJoin< UserClass3, Bar, Foo, Qux>(db,
+                //    j => j.f.ColFoo.StartsWith(j.b.ColBar) && j.f.id == j.q.id && j.q.Success
+                //    );
 
             }
 
