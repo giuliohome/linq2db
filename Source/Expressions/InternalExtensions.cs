@@ -729,47 +729,47 @@ namespace LinqToDB.Expressions
                     
                 case ExpressionType.Invoke:
                     {
-                        var inv = (InvocationExpression)ex;
-                        var excall =(MethodCallExpression)inv.Expression;
-                        var call = excall;
+                          var inv = (InvocationExpression)ex;
+//                        var excall =(MethodCallExpression)inv.Expression;
+//                        var call = excall;
                         
                         
-                        var unwrapped = (MethodCallExpression)call.Unwrap();
-                        var reflectedLambda = unwrapped.Object;
+//                        var unwrapped = (MethodCallExpression)call.Unwrap();
+//                        var reflectedLambda = unwrapped.Object;
                         
-                        var memberExpr = reflectedLambda as MemberExpression;
-                        var mylambda = memberExpr.Expression;
-                        ConstantExpression thelambda = mylambda as ConstantExpression;
-                        var val = thelambda.Value;
+//                        var memberExpr = reflectedLambda as MemberExpression;
+//                        var mylambda = memberExpr.Expression;
+//                        ConstantExpression thelambda = mylambda as ConstantExpression;
+//                        var val = thelambda.Value;
                         
-                        var ret_type = val.GetType();
-                        var ret = ret_type.GetFields()[0];
-                        //var ret = ret_type.GetField("lambdaExpr");
-                        var ret_val = ret.GetValue(val);
-                        var original_lambda = ret_val as LambdaExpression;
+//                        var ret_type = val.GetType();
+//                        var ret = ret_type.GetFields()[0];
+//                        //var ret = ret_type.GetField("lambdaExpr");
+//                        var ret_val = ret.GetValue(val);
+//                        var original_lambda = ret_val as LambdaExpression;
                         
-                        var body = original_lambda.Body as LambdaExpression;
-                        var pf0 = (ParameterExpression)inv.Arguments[0];
+//                        var body = original_lambda.Body as LambdaExpression;
+//                        var pf0 = (ParameterExpression)inv.Arguments[0];
                          
-                        BinaryExpression equalB = body.Body as BinaryExpression;
-                        var myL = equalB.Left as MemberExpression;
-                        var myR = equalB.Right as MemberExpression;
+//                        BinaryExpression equalB = body.Body as BinaryExpression;
+//                        var myL = equalB.Left as MemberExpression;
+//                        var myR = equalB.Right as MemberExpression;
 
-                        string Barfield = myR.Member.Name;
+//                        string Barfield = myR.Member.Name;
                         
-//			var pf = Expression.Parameter(typeof(T2),"f");
-//            var pb = Expression.Parameter(typeof(T1), "b");
-//            PropertyInfo FooId = typeof(T2).GetProperty("id");
-            PropertyInfo newBarId = pf0.Type.GetProperty(Barfield);
-//            var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
+////			var pf = Expression.Parameter(typeof(T2),"f");
+////            var pb = Expression.Parameter(typeof(T1), "b");
+////            PropertyInfo FooId = typeof(T2).GetProperty("id");
+//            PropertyInfo newBarId = pf0.Type.GetProperty(Barfield);
+////            var eqexpr = Expression.Equal(Expression.Property(pf, FooId), Expression.Property(pb, BarId));
 
-						var lambdaIntEq = Expression.Lambda( Expression.Equal(myL, Expression.Property(pf0, newBarId) ) , pf0);
+//						var lambdaIntEq = Expression.Lambda( Expression.Equal(myL, Expression.Property(pf0, newBarId) ) , pf0);
                         
 
 						
-                        var final_lambda = Expression.Lambda(lambdaIntEq, myL.Expression as ParameterExpression); //, pf);
+//                        var final_lambda = Expression.Lambda(lambdaIntEq, myL.Expression as ParameterExpression); //, pf);
                         
-                        return final_lambda;
+//                        return final_lambda;
                         
                         var mexp = ((MemberExpression)inv.Expression);
                     var l = (ConstantExpression)mexp.Expression;

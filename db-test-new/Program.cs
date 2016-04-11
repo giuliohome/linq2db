@@ -406,6 +406,7 @@ namespace db_test
 				return w;
 			//}
 		}
+
         public class JoinClass<T1, T2, T3>
         {
             public T1 t1;
@@ -630,6 +631,41 @@ namespace db_test
                     )
                     );
                 Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+
+
+                var left = db.GetTable<Bar>()
+                .SelectMany(
+                b => db.GetTable<Baz>().Where(x => x.id == b.id).DefaultIfEmpty()
+                    , (b, f) => new JoinClass<Bar, Baz>() { t1 = b, t2 = f });
+
+                Console.WriteLine(String.Join(",",
+                        left.Select(t => t.t1.Name + "*" + ( t.t2 == null ? "-" : t.t2.Sex.Equals('M')?"M":"F"))
+                    )
+                    );
+                Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+
+                var linqjoin = db.GetTable<Bar>().Join(db.GetTable<Baz>(), x => x.id, y => y.id,
+                    (x, y) => new  { x,  y }).ToArray();
+
+                Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+
+                var qleft = from b in db.GetTable<Bar>()
+                            join z in db.GetTable<Baz>() on b.id equals z.id into g
+                            from s in g.DefaultIfEmpty()
+                            select new { b, s };
+                qleft.ToArray();
+                Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+
+                var nonqleft = db.GetTable<Bar>().GroupJoin(db.GetTable<Baz>(), x => x.id, y => y.id,
+                    (x, y) => new { x, y })
+                    .SelectMany(t => t.y.DefaultIfEmpty()
+                                        , (o,i) => new { Outer = o.x, Inner = i })
+                    .ToArray();
+                Console.WriteLine(String.Format("Last Query: {0}", db.LastQuery));
+                Console.WriteLine(String.Join(",",
+                        nonqleft.Select(t => t.Outer.Name + "*" + (t.Inner == null ? "-" : t.Inner.Sex.Equals('M') ? "M" : "F"))
+                    )
+                    );
 
                 //var super = UserJoin< UserClass3, Bar, Foo, Qux>(db,
                 //    j => j.f.ColFoo.StartsWith(j.b.ColBar) && j.f.id == j.q.id && j.q.Success
