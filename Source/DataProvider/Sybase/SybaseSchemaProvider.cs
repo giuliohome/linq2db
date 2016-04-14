@@ -69,7 +69,8 @@ namespace LinqToDB.DataProvider.Sybase
 				FROM
 					sysobjects
 				WHERE
-					type IN ('U','V') AND name like 'allocation%'",
+					type IN ('U')  --,'V') 
+                AND name = lower(name) AND name not like 'aud%'",
 				new { @db = dataConnection.Connection.Database})
 				.ToList();
 		}
