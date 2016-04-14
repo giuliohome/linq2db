@@ -69,7 +69,7 @@ namespace LinqToDB.DataProvider.Sybase
 				FROM
 					sysobjects
 				WHERE
-					type IN ('U','V')",
+					type IN ('U','V') AND name like 'allocation%'",
 				new { @db = dataConnection.Connection.Database})
 				.ToList();
 		}
@@ -157,84 +157,89 @@ namespace LinqToDB.DataProvider.Sybase
 
 		protected override List<ProcedureInfo> GetProcedures(DataConnection dataConnection)
 		{
-			var ps = ((DbConnection)dataConnection.Connection).GetSchema("Procedures");
+			//var ps = ((DbConnection)dataConnection.Connection).GetSchema("Procedures");
 
 			return
 			(
-				from p in ps.AsEnumerable()
-				let catalog = p.Field<string>("SPECIFIC_CATALOG")
-				let schema  = p.Field<string>("SPECIFIC_SCHEMA")
-				let name    = p.Field<string>("SPECIFIC_NAME").TrimEnd('\0')
-				select new ProcedureInfo
-				{
-					ProcedureID         = catalog + "." + schema + "." + name,
-					CatalogName         = catalog,
-					SchemaName          = schema,
-					ProcedureName       = name,
-					IsDefaultSchema     = schema == "dbo"
-				}
-			).ToList();
+                Enumerable.Empty<ProcedureInfo>()
+                //from p in ps.AsEnumerable()
+                //let catalog = p.Field<string>("SPECIFIC_CATALOG")
+                //let schema  = p.Field<string>("SPECIFIC_SCHEMA")
+                //let name    = p.Field<string>("SPECIFIC_NAME").TrimEnd('\0')
+                //select new ProcedureInfo
+                //{
+                //	ProcedureID         = catalog + "." + schema + "." + name,
+                //	CatalogName         = catalog,
+                //	SchemaName          = schema,
+                //	ProcedureName       = name,
+                //	IsDefaultSchema     = schema == "dbo"
+                //}
+            ).ToList();
 		}
 
 		protected override List<ProcedureParameterInfo> GetProcedureParameters(DataConnection dataConnection)
 		{
-			var ps = ((DbConnection)dataConnection.Connection).GetSchema("ProcedureParameters");
+            return Enumerable.Empty<ProcedureParameterInfo>().ToList();
 
-			return
-			(
-				from p in ps.AsEnumerable()
-				let catalog = p.Field<string>("SPECIFIC_CATALOG")
-				let schema  = p.Field<string>("SPECIFIC_SCHEMA")
-				let name    = p.Field<string>("SPECIFIC_NAME")
-				let mode    = p.Field<string>("PARAMETER_MODE")
-				where mode != "RETURN"
-				select new ProcedureParameterInfo
-				{
-					ProcedureID   = catalog + "." + schema + "." + name,
-					ParameterName = p.Field<string>("PARAMETER_NAME").TrimStart('@'),
-					IsIn          = mode == "IN"  || mode == "INOUT",
-					IsOut         = mode == "OUT" || mode == "INOUT",
-					//Length        = Converter.ChangeTypeTo<int>(p.Field<object>("ORDINAL_POSITION")),
-					Precision     = Converter.ChangeTypeTo<int>(p.Field<object>("NUMERIC_PRECISION")),
-					Scale         = Converter.ChangeTypeTo<int>(p.Field<object>("NUMERIC_SCALE")),
-					Ordinal       = Converter.ChangeTypeTo<int>(p.Field<object>("ORDINAL_POSITION")),
-					IsResult      = p.Field<string>("IS_RESULT") == "YES",
-					DataType      = p.Field<string>("DATA_TYPE")
-				}
-			).ToList();
-		}
+            //var ps = ((DbConnection)dataConnection.Connection).GetSchema("ProcedureParameters");
+
+            //return
+            //(
+            //	from p in ps.AsEnumerable()
+            //	let catalog = p.Field<string>("SPECIFIC_CATALOG")
+            //	let schema  = p.Field<string>("SPECIFIC_SCHEMA")
+            //	let name    = p.Field<string>("SPECIFIC_NAME")
+            //	let mode    = p.Field<string>("PARAMETER_MODE")
+            //	where mode != "RETURN"
+            //	select new ProcedureParameterInfo
+            //	{
+            //		ProcedureID   = catalog + "." + schema + "." + name,
+            //		ParameterName = p.Field<string>("PARAMETER_NAME").TrimStart('@'),
+            //		IsIn          = mode == "IN"  || mode == "INOUT",
+            //		IsOut         = mode == "OUT" || mode == "INOUT",
+            //		//Length        = Converter.ChangeTypeTo<int>(p.Field<object>("ORDINAL_POSITION")),
+            //		Precision     = Converter.ChangeTypeTo<int>(p.Field<object>("NUMERIC_PRECISION")),
+            //		Scale         = Converter.ChangeTypeTo<int>(p.Field<object>("NUMERIC_SCALE")),
+            //		Ordinal       = Converter.ChangeTypeTo<int>(p.Field<object>("ORDINAL_POSITION")),
+            //		IsResult      = p.Field<string>("IS_RESULT") == "YES",
+            //		DataType      = p.Field<string>("DATA_TYPE")
+            //	}
+            //).ToList();
+        }
 
 		protected override DataTable GetProcedureSchema(DataConnection dataConnection, string commandText, CommandType commandType, DataParameter[] parameters)
 		{
-			var dt = base.GetProcedureSchema(dataConnection, commandText, commandType, parameters);
+            return null;
+   //         var dt = base.GetProcedureSchema(dataConnection, commandText, commandType, parameters);
 
-			return dt.AsEnumerable().Any() ? dt : null;
+			//return dt.AsEnumerable().Any() ? dt : null;
 		}
 
 		protected override List<ColumnSchema> GetProcedureResultColumns(DataTable resultTable)
 		{
 			return
 			(
-				from r in resultTable.AsEnumerable()
+                Enumerable.Empty<ColumnSchema>()
+            //from r in resultTable.AsEnumerable()
 
-				let columnName = r.Field<string>("ColumnName")
-				let isNullable = r.Field<bool>  ("AllowDBNull")
+            //let columnName = r.Field<string>("ColumnName")
+            //let isNullable = r.Field<bool>  ("AllowDBNull")
 
-				let systemType = r.Field<Type>("DataType")
-				let length     = r.Field<int> ("ColumnSize")
-				let precision  = Converter.ChangeTypeTo<int>(r["NumericPrecision"])
-				let scale      = Converter.ChangeTypeTo<int>(r["NumericScale"])
+            //let systemType = r.Field<Type>("DataType")
+            //let length     = r.Field<int> ("ColumnSize")
+            //let precision  = Converter.ChangeTypeTo<int>(r["NumericPrecision"])
+            //let scale      = Converter.ChangeTypeTo<int>(r["NumericScale"])
 
-				select new ColumnSchema
-				{
-					ColumnName = columnName,
-					IsNullable = isNullable,
-					MemberName = ToValidName(columnName),
-					MemberType = ToTypeName(systemType, isNullable),
-					SystemType = systemType ?? typeof(object),
-					IsIdentity = r.Field<bool>("IsIdentity"),
-				}
-			).ToList();
+            //select new ColumnSchema
+            //{
+            //	ColumnName = columnName,
+            //	IsNullable = isNullable,
+            //	MemberName = ToValidName(columnName),
+            //	MemberType = ToTypeName(systemType, isNullable),
+            //	SystemType = systemType ?? typeof(object),
+            //	IsIdentity = r.Field<bool>("IsIdentity"),
+            //}
+            ).ToList();
 		}
 	}
 }
